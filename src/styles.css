@@ -142,3 +142,20 @@
     color: var(--color-foreground);
   }
 }
+
+/* Now-playing music bars animation */
+@keyframes tubedeck-eq {
+  0%, 100% { height: 25%; }
+  50% { height: 100%; }
+}
+.tubedeck-bar { height: 25%; animation: tubedeck-eq 0.9s ease-in-out infinite; }
+.tubedeck-bar-1 { animation-delay: 0s; }
+.tubedeck-bar-2 { animation-delay: 0.15s; }
+.tubedeck-bar-3 { animation-delay: 0.3s; }
+.tubedeck-bar-4 { animation-delay: 0.45s; }
+
+/* Hide player chrome when fullscreen */
+.tubedeck-player:fullscreen { background: #000; border-radius: 0; }
+.tubedeck-player:fullscreen .tubedeck-player-bar { display: none; }
+.tubedeck-player:fullscreen > div:last-child { height: 100vh; max-width: none; }
+.tubedeck-player:fullscreen iframe { max-height: 100vh !important; height: 100vh !important; }
