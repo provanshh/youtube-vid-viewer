@@ -66,6 +66,7 @@ import {
   ArrowUpDown,
   ChevronUp,
   ChevronDown,
+  User,
 } from "lucide-react";
 import { toast } from "sonner";
 
