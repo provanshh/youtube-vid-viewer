@@ -50,7 +50,6 @@ export const Route = createFileRoute("/")({
 
 function Landing() {
   const [authOpen, setAuthOpen] = useState<null | "login" | "signup">(null);
-  const [authOpen, setAuthOpen] = useState<null | "login" | "signup">(null);
   const [activeFeature, setActiveFeature] = useState(0);
 
   useEffect(() => {
