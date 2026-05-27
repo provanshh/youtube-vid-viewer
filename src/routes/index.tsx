@@ -162,20 +162,36 @@ function Landing() {
             Every tool you need to keep your watchlist sane.
           </p>
         </div>
-        <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map((f, i) => (
-            <div
-              key={f.title}
-              className="group rounded-2xl border border-white/10 bg-white/[0.03] p-6 transition-all hover:-translate-y-1 hover:bg-white/[0.06]"
-              style={{ animation: `fade-in 0.5s ease-out ${i * 0.05}s both` }}
-            >
-              <div className="text-2xl">{f.emoji}</div>
-              <h3 className="mt-4 text-base font-semibold text-white">{f.title}</h3>
-              <p className="mt-1.5 text-sm text-white/60">{f.desc}</p>
-            </div>
-          ))}
+        <div className="mt-14 linkee-marquee-mask overflow-hidden">
+          <div className="linkee-marquee-track flex w-max gap-5">
+            {[...FEATURES, ...FEATURES].map((f, i) => {
+              const Icon = f.icon;
+              const isCenter = i % FEATURES.length === Math.floor(FEATURES.length / 2);
+              return (
+                <div
+                  key={i}
+                  className={`w-72 shrink-0 rounded-2xl border p-6 transition-all ${
+                    isCenter
+                      ? "-translate-y-4 border-white/25 bg-white/[0.08] shadow-2xl shadow-white/5"
+                      : "border-white/10 bg-white/[0.03]"
+                  }`}
+                >
+                  <div
+                    className={`inline-flex h-10 w-10 items-center justify-center rounded-xl ${
+                      isCenter ? "bg-white text-black" : "bg-white/10 text-white"
+                    }`}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="mt-4 text-base font-semibold text-white">{f.title}</h3>
+                  <p className="mt-1.5 text-sm text-white/60">{f.desc}</p>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </section>
+
 
       {/* Pricing */}
       <section id="pricing" className="mx-auto max-w-6xl px-5 py-24">
