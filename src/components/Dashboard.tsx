@@ -286,19 +286,28 @@ export default function Dashboard() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const inCat = videos.filter((v) => v.category === category);
-    if (!q) return inCat;
+    let inCat = videos.filter((v) => v.category === category);
+    if (eyeFilter === "viewed") inCat = inCat.filter((v) => v.watched);
+    else if (eyeFilter === "left") inCat = inCat.filter((v) => !v.watched);
     const parsed = parseYouTube(search);
-    return inCat.filter((v) => {
-      if (parsed && v.id === parsed.id) return true;
-      return (
-        v.title.toLowerCase().includes(q) ||
-        v.author.toLowerCase().includes(q) ||
-        v.url.toLowerCase().includes(q) ||
-        v.id.toLowerCase().includes(q)
+    let result = !q
+      ? inCat
+      : inCat.filter((v) => {
+          if (parsed && v.id === parsed.id) return true;
+          return (
+            v.title.toLowerCase().includes(q) ||
+            v.author.toLowerCase().includes(q) ||
+            v.url.toLowerCase().includes(q) ||
+            v.id.toLowerCase().includes(q)
+          );
+        });
+    if (sortByChannel) {
+      result = [...result].sort((a, b) =>
+        a.author.localeCompare(b.author) || a.title.localeCompare(b.title),
       );
-    });
-  }, [videos, search, category]);
+    }
+    return result;
+  }, [videos, search, category, eyeFilter, sortByChannel]);
 
   // If user pastes URL into search of different category, auto-switch
   useEffect(() => {
@@ -308,6 +317,35 @@ export default function Dashboard() {
       if (exists) setCategory(p.category);
     }
   }, [search, videos, category]);
+
+  // Global paste — paste a YouTube URL anywhere and it gets added
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target) {
+        const tag = target.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || target.isContentEditable) return;
+      }
+      const text = e.clipboardData?.getData("text") ?? "";
+      if (!text) return;
+      const parts = text.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
+      const anyValid = parts.some((p) => parseYouTube(p));
+      if (!anyValid) return;
+      e.preventDefault();
+      addFromInputs(parts);
+    };
+    document.addEventListener("paste", onPaste);
+    return () => document.removeEventListener("paste", onPaste);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videos]);
+
+  // Scroll to player whenever a new video is played
+  useEffect(() => {
+    if (!activeId) return;
+    requestAnimationFrame(() => {
+      playerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [activeId]);
 
   const enterFullscreen = () => {
     setPlayerSize("fullscreen");
