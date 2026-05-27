@@ -81,12 +81,20 @@ function Landing() {
             <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
             <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
           </nav>
-          <Link
-            to="/app"
-            className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-xs font-semibold text-black shadow-md transition-all hover:scale-105"
-          >
-            Get Lifetime Access
-          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setAuthOpen("login")}
+              className="rounded-full px-4 py-2 text-xs font-semibold text-white/80 transition-colors hover:text-white"
+            >
+              Log in
+            </button>
+            <button
+              onClick={() => setAuthOpen("signup")}
+              className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-xs font-semibold text-black shadow-md transition-all hover:scale-105"
+            >
+              Sign up
+            </button>
+          </div>
         </div>
       </header>
 
