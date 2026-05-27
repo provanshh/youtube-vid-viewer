@@ -176,7 +176,31 @@ export default function Dashboard() {
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [eyeFilter, setEyeFilter] = useState<EyeFilter>("all");
   const [sortByChannel, setSortByChannel] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const playerRef = useRef<HTMLDivElement>(null);
+
+  const copyAllLinks = async () => {
+    if (videos.length === 0) {
+      toast.error("No links to copy");
+      return;
+    }
+    const groups: Record<Category, string[]> = { videos: [], shorts: [], channel: [], posts: [] };
+    videos.forEach((v) => groups[v.category].push(v.url));
+    const sections: string[] = [];
+    (Object.keys(groups) as Category[]).forEach((cat) => {
+      if (groups[cat].length) {
+        const label = CATEGORIES.find((c) => c.value === cat)?.label ?? cat;
+        sections.push(`${label}:\n${groups[cat].join(", ")}`);
+      }
+    });
+    const text = sections.join("\n\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(`Copied ${videos.length} links`);
+    } catch {
+      toast.error("Copy failed");
+    }
+  };
 
   useEffect(() => {
     const stored = localStorage.getItem("tubedeck.theme");
