@@ -589,6 +589,13 @@ function ListRow({
         <button onClick={onPlay} className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm hover:shadow-md">
           <Play className="h-3.5 w-3.5 fill-current" />
         </button>
+        <button
+          onClick={() => copyLink(v.id)}
+          className="rounded p-2 text-muted-foreground hover:bg-accent"
+          aria-label="Copy link"
+        >
+          <Copy className="h-4 w-4" />
+        </button>
         <a
           href={v.url}
           target="_blank"
