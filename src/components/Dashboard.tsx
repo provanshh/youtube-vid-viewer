@@ -908,7 +908,7 @@ function ShortsCard({
       <button
         onClick={onPlay}
         className="relative block w-full overflow-hidden"
-        style={{ aspectRatio: "9 / 16" }}
+        style={{ aspectRatio: "3 / 5" }}
       >
         <img
           src={v.thumbnail}
