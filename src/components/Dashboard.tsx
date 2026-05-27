@@ -66,6 +66,7 @@ import {
   ArrowUpDown,
   ChevronUp,
   ChevronDown,
+  User,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -176,7 +177,31 @@ export default function Dashboard() {
   const [confirmId, setConfirmId] = useState<string | null>(null);
   const [eyeFilter, setEyeFilter] = useState<EyeFilter>("all");
   const [sortByChannel, setSortByChannel] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
   const playerRef = useRef<HTMLDivElement>(null);
+
+  const copyAllLinks = async () => {
+    if (videos.length === 0) {
+      toast.error("No links to copy");
+      return;
+    }
+    const groups: Record<Category, string[]> = { videos: [], shorts: [], channel: [], posts: [] };
+    videos.forEach((v) => groups[v.category].push(v.url));
+    const sections: string[] = [];
+    (Object.keys(groups) as Category[]).forEach((cat) => {
+      if (groups[cat].length) {
+        const label = CATEGORIES.find((c) => c.value === cat)?.label ?? cat;
+        sections.push(`${label}:\n${groups[cat].join(", ")}`);
+      }
+    });
+    const text = sections.join("\n\n");
+    try {
+      await navigator.clipboard.writeText(text);
+      toast.success(`Copied ${videos.length} links`);
+    } catch {
+      toast.error("Copy failed");
+    }
+  };
 
   useEffect(() => {
     const stored = localStorage.getItem("tubedeck.theme");
@@ -501,11 +526,22 @@ export default function Dashboard() {
                 {dark ? "Light theme" : "Dark theme"}
               </DropdownMenuItem>
               <DropdownMenuItem
+                onClick={copyAllLinks}
+                className="cursor-pointer text-xs"
+                disabled={videos.length === 0}
+              >
+                <Copy className="h-4 w-4" /> Copy links
+              </DropdownMenuItem>
+              <DropdownMenuItem
                 onClick={downloadPdf}
                 className="cursor-pointer text-xs"
                 disabled={videos.length === 0}
               >
                 <Download className="h-4 w-4" /> Download PDF
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setProfileOpen(true)} className="cursor-pointer text-xs">
+                <User className="h-4 w-4" /> Profile
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -784,6 +820,44 @@ export default function Dashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Profile</DialogTitle>
+            <DialogDescription>Built by Provansh</DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center gap-4 py-2">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 text-2xl font-bold text-primary-foreground">
+              P
+            </div>
+            <div>
+              <div className="text-base font-semibold">Provansh</div>
+              <div className="text-xs text-muted-foreground">Creator of TubeDeck</div>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2">
+            <a
+              href="https://x.com/provanshh"
+              target="_blank"
+              rel="noreferrer noopener"
+              className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm hover:bg-accent"
+            >
+              <span>𝕏 / Twitter</span>
+              <span className="text-xs text-muted-foreground">@provanshh</span>
+            </a>
+            <a
+              href="https://www.linkedin.com/in/provanshh/"
+              target="_blank"
+              rel="noreferrer noopener"
+              className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm hover:bg-accent"
+            >
+              <span>LinkedIn</span>
+              <span className="text-xs text-muted-foreground">in/provanshh</span>
+            </a>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
