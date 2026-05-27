@@ -354,17 +354,18 @@ function FaqItem({ q, a, defaultOpen }: { q: string; a: string; defaultOpen?: bo
   );
 }
 
-const FEATURES = [
-  { emoji: "🎬", title: "Theatre, small or fullscreen", desc: "Three player modes. Switch instantly without losing your place." },
-  { emoji: "📱", title: "Shorts done right", desc: "Vertical player with next/previous — like the real app, minus the noise." },
-  { emoji: "📚", title: "Videos, Shorts, Channels, Posts", desc: "One place for everything you save. Auto-categorized when you paste." },
-  { emoji: "👁️", title: "Filter what's left", desc: "Hide watched, see only what's left, or sort by channel in one click." },
-  { emoji: "📋", title: "Copy & export", desc: "Copy every link grouped by category, or export your whole library to PDF." },
-  { emoji: "⚡", title: "Paste anywhere", desc: "Just hit Ctrl+V anywhere in the app — Linkee figures the rest out." },
-  { emoji: "🪟", title: "Three views", desc: "Gallery, list and compact — match how you want to scan your library." },
-  { emoji: "🔒", title: "Local-first", desc: "Your library lives in your browser. No account, no tracking, no waiting." },
-  { emoji: "✨", title: "Beautiful, dark or light", desc: "A calm interface that gets out of your way. Switches with your system." },
+const FEATURES: { icon: LucideIcon; title: string; desc: string }[] = [
+  { icon: Monitor, title: "Theatre, small or fullscreen", desc: "Three player modes. Switch instantly without losing your place." },
+  { icon: Smartphone, title: "Shorts done right", desc: "Vertical player with next/previous — like the real app, minus the noise." },
+  { icon: Library, title: "Videos, Shorts, Channels, Posts", desc: "One place for everything you save. Auto-categorized when you paste." },
+  { icon: Eye, title: "Filter what's left", desc: "Hide watched, see only what's left, or sort by channel in one click." },
+  { icon: ClipboardCopy, title: "Copy & export", desc: "Copy every link grouped by category, or export your whole library to PDF." },
+  { icon: Clipboard, title: "Paste anywhere", desc: "Just hit Ctrl+V anywhere in the app — Linkee figures the rest out." },
+  { icon: LayoutGrid, title: "Three views", desc: "Gallery, list and compact — match how you want to scan your library." },
+  { icon: Lock, title: "Local-first", desc: "Your library lives in your browser. No account, no tracking, no waiting." },
+  { icon: Palette, title: "Beautiful, dark or light", desc: "A calm interface that gets out of your way. Switches with your system." },
 ];
+
 
 const PLANS = [
   {
