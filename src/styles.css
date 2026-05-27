@@ -191,15 +191,12 @@
   line-height: 1;
 }
 
-/* Marquee for features row */
-@keyframes linkee-marquee {
-  from { transform: translateX(0); }
-  to { transform: translateX(-50%); }
-}
-.linkee-marquee-track {
-  animation: linkee-marquee 40s linear infinite;
-}
+/* Carousel mask for features row */
 .linkee-marquee-mask {
-  mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
-  -webkit-mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+  mask-image: linear-gradient(to right, transparent, black 12%, black 88%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 12%, black 88%, transparent);
+}
+.linkee-carousel-track {
+  transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform;
 }

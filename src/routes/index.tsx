@@ -1,7 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef, useState, type FormEvent, type InputHTMLAttributes } from "react";
 import {
-  Play,
   Sparkles,
   Check,
   ArrowRight,
@@ -9,7 +8,6 @@ import {
   Crown,
   Rocket,
   ChevronDown,
-  Download,
   Monitor,
   Smartphone,
   Library,
@@ -19,11 +17,16 @@ import {
   LayoutGrid,
   Lock,
   Palette,
+  X,
+  Mail,
+  KeyRound,
+  User as UserIcon,
   type LucideIcon,
 } from "lucide-react";
 import linkeeLogo from "@/assets/linkee-logo.png";
 import fireGif from "@/assets/fire.gif";
 import CurvedLoop from "@/components/CurvedLoop";
+
 
 
 export const Route = createFileRoute("/")({
@@ -46,6 +49,9 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
+  const [authOpen, setAuthOpen] = useState<null | "login" | "signup">(null);
+  const [activeFeature, setActiveFeature] = useState(0);
+
   useEffect(() => {
     const stored = localStorage.getItem("tubedeck.theme");
     const prefersDark =
@@ -53,6 +59,14 @@ function Landing() {
       (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches);
     document.documentElement.classList.toggle("dark", prefersDark);
   }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setActiveFeature((i) => (i + 1) % FEATURES.length);
+    }, 2600);
+    return () => clearInterval(id);
+  }, []);
+
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white overflow-x-hidden">
@@ -67,12 +81,20 @@ function Landing() {
             <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
             <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
           </nav>
-          <Link
-            to="/app"
-            className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-xs font-semibold text-black shadow-md transition-all hover:scale-105"
-          >
-            Get Lifetime Access
-          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setAuthOpen("login")}
+              className="rounded-full px-4 py-2 text-xs font-semibold text-white/80 transition-colors hover:text-white"
+            >
+              Log in
+            </button>
+            <button
+              onClick={() => setAuthOpen("signup")}
+              className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-xs font-semibold text-black shadow-md transition-all hover:scale-105"
+            >
+              Sign up
+            </button>
+          </div>
         </div>
       </header>
 
@@ -163,22 +185,27 @@ function Landing() {
           </p>
         </div>
         <div className="mt-14 linkee-marquee-mask overflow-hidden">
-          <div className="linkee-marquee-track flex w-max gap-5">
-            {[...FEATURES, ...FEATURES].map((f, i) => {
+          <div
+            className="linkee-carousel-track flex"
+            style={{
+              transform: `translateX(calc(50% - ${activeFeature * 308}px - 144px))`,
+            }}
+          >
+            {FEATURES.map((f, i) => {
               const Icon = f.icon;
-              const isCenter = i % FEATURES.length === Math.floor(FEATURES.length / 2);
+              const isActive = i === activeFeature;
               return (
                 <div
                   key={i}
-                  className={`w-72 shrink-0 rounded-2xl border p-6 transition-all ${
-                    isCenter
-                      ? "-translate-y-4 border-white/25 bg-white/[0.08] shadow-2xl shadow-white/5"
-                      : "border-white/10 bg-white/[0.03]"
+                  className={`mx-2.5 w-72 shrink-0 rounded-2xl border p-6 transition-all duration-500 ${
+                    isActive
+                      ? "-translate-y-5 scale-105 border-white/25 bg-white/[0.08] shadow-2xl shadow-white/10"
+                      : "border-white/10 bg-white/[0.03] opacity-60"
                   }`}
                 >
                   <div
-                    className={`inline-flex h-10 w-10 items-center justify-center rounded-xl ${
-                      isCenter ? "bg-white text-black" : "bg-white/10 text-white"
+                    className={`inline-flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
+                      isActive ? "bg-white text-black" : "bg-white/10 text-white"
                     }`}
                   >
                     <Icon className="h-5 w-5" />
@@ -190,7 +217,22 @@ function Landing() {
             })}
           </div>
         </div>
+        <div className="mt-8 flex items-center justify-center gap-1.5">
+          {FEATURES.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setActiveFeature(i)}
+              aria-label={`Go to feature ${i + 1}`}
+              className={`rounded-full transition-all ${
+                i === activeFeature
+                  ? "h-1.5 w-5 bg-white"
+                  : "h-1.5 w-1.5 bg-white/30 hover:bg-white/50"
+              }`}
+            />
+          ))}
+        </div>
       </section>
+
 
 
       {/* Pricing */}
@@ -332,6 +374,149 @@ function Landing() {
           </div>
         </div>
       </footer>
+
+      <AuthDialog mode={authOpen} onClose={() => setAuthOpen(null)} onSwitch={(m) => setAuthOpen(m)} />
+    </div>
+  );
+}
+
+function AuthDialog({
+  mode,
+  onClose,
+  onSwitch,
+}: {
+  mode: null | "login" | "signup";
+  onClose: () => void;
+  onSwitch: (m: "login" | "signup") => void;
+}) {
+  const navigate = useNavigate();
+  const dialogRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!mode) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [mode, onClose]);
+
+  if (!mode) return null;
+
+  const isSignup = mode === "signup";
+
+  const onSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    onClose();
+    navigate({ to: "/app" });
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center px-4 animate-fade-in"
+      role="dialog"
+      aria-modal="true"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
+    >
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-md" />
+      <div
+        ref={dialogRef}
+        className="relative w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-[#0c0c0c] shadow-2xl"
+      >
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.08),transparent_70%)]" />
+        <button
+          onClick={onClose}
+          className="absolute right-4 top-4 rounded-full p-1.5 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+          aria-label="Close"
+        >
+          <X className="h-4 w-4" />
+        </button>
+
+        <div className="relative px-7 pt-8 pb-7">
+          <img src={linkeeLogo} alt="Linkee" className="h-6 w-auto invert" />
+          <h2 className="mt-5 text-2xl font-semibold text-white">
+            {isSignup ? "Create your account" : "Welcome back"}
+          </h2>
+          <p className="mt-1.5 text-sm text-white/60">
+            {isSignup
+              ? "Start organizing your YouTube in one calm place."
+              : "Sign in to pick up where you left off."}
+          </p>
+
+          <form onSubmit={onSubmit} className="mt-6 space-y-3">
+            {isSignup && (
+              <Field icon={UserIcon} type="text" placeholder="Your name" autoComplete="name" />
+            )}
+            <Field icon={Mail} type="email" placeholder="you@email.com" autoComplete="email" required />
+            <Field
+              icon={KeyRound}
+              type="password"
+              placeholder="Password"
+              autoComplete={isSignup ? "new-password" : "current-password"}
+              required
+            />
+
+            {!isSignup && (
+              <div className="flex justify-end">
+                <button type="button" className="text-xs text-white/60 hover:text-white">
+                  Forgot password?
+                </button>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-black transition-all hover:scale-[1.01]"
+            >
+              {isSignup ? "Create account" : "Log in"}
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+          </form>
+
+          <div className="my-5 flex items-center gap-3 text-[10px] uppercase tracking-wider text-white/40">
+            <div className="h-px flex-1 bg-white/10" />
+            or
+            <div className="h-px flex-1 bg-white/10" />
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              onClose();
+              navigate({ to: "/app" });
+            }}
+            className="flex w-full items-center justify-center gap-2 rounded-full border border-white/15 bg-white/5 px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-white/10"
+          >
+            Continue without account
+          </button>
+
+          <p className="mt-6 text-center text-xs text-white/60">
+            {isSignup ? "Already have an account?" : "New to Linkee?"}{" "}
+            <button
+              type="button"
+              onClick={() => onSwitch(isSignup ? "login" : "signup")}
+              className="font-semibold text-white underline-offset-2 hover:underline"
+            >
+              {isSignup ? "Log in" : "Create one"}
+            </button>
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Field({
+  icon: Icon,
+  ...props
+}: InputHTMLAttributes<HTMLInputElement> & { icon: LucideIcon }) {
+  return (
+    <div className="group relative">
+      <Icon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40 transition-colors group-focus-within:text-white/80" />
+      <input
+        {...props}
+        className="w-full rounded-xl border border-white/10 bg-white/[0.04] py-2.5 pl-10 pr-3.5 text-sm text-white placeholder:text-white/40 transition-colors focus:border-white/30 focus:bg-white/[0.06] focus:outline-none"
+      />
     </div>
   );
 }
