@@ -45,7 +45,26 @@ import {
   Clapperboard,
   Tv,
   FileText,
+  Copy,
+  Check,
+  Minimize2,
+  Maximize2,
+  Monitor,
+  X,
 } from "lucide-react";
+import { toast } from "sonner";
+
+type PlayerSize = "small" | "default" | "theatre";
+
+async function copyLink(id: string) {
+  const url = `https://www.youtube.com/watch?v=${id}`;
+  try {
+    await navigator.clipboard.writeText(url);
+    toast.success("Link copied");
+  } catch {
+    toast.error("Could not copy");
+  }
+}
 
 type Category = "videos" | "shorts" | "channel" | "posts";
 
@@ -115,6 +134,7 @@ export default function Dashboard() {
   const [view, setView] = useState<ViewMode>("gallery");
   const [loading, setLoading] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [playerSize, setPlayerSize] = useState<PlayerSize>("default");
   const [bulkOpen, setBulkOpen] = useState(false);
   const [dark, setDark] = useState(false);
   const [category, setCategory] = useState<Category>("videos");
@@ -290,23 +310,60 @@ export default function Dashboard() {
         {/* Player */}
         {activeId && (
           <Card className="overflow-hidden rounded-2xl p-0 shadow-lg">
-            <div className="relative w-full" style={{ aspectRatio: "16 / 9" }}>
-              <iframe
-                key={activeId}
-                src={`https://www.youtube.com/embed/${activeId}?autoplay=1`}
-                title="YouTube player"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                className="absolute inset-0 h-full w-full"
-              />
-            </div>
-            <div className="flex items-center justify-between p-3">
-              <p className="truncate text-sm text-muted-foreground">
+            <div className="flex items-center justify-between gap-2 border-b border-border bg-card/60 px-3 py-2">
+              <p className="truncate text-xs font-medium text-muted-foreground">
                 Now playing
               </p>
-              <Button variant="ghost" size="sm" onClick={() => setActiveId(null)}>
-                Close
-              </Button>
+              <div className="flex items-center gap-1">
+                <div className="inline-flex items-center rounded-full border border-border bg-background p-0.5">
+                  <PlayerSizeBtn icon={<Minimize2 className="h-3.5 w-3.5" />} label="Small" active={playerSize === "small"} onClick={() => setPlayerSize("small")} />
+                  <PlayerSizeBtn icon={<Monitor className="h-3.5 w-3.5" />} label="Default" active={playerSize === "default"} onClick={() => setPlayerSize("default")} />
+                  <PlayerSizeBtn icon={<Maximize2 className="h-3.5 w-3.5" />} label="Theatre" active={playerSize === "theatre"} onClick={() => setPlayerSize("theatre")} />
+                </div>
+                <button
+                  onClick={() => copyLink(activeId)}
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-accent"
+                  aria-label="Copy link"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </button>
+                <a
+                  href={`https://www.youtube.com/watch?v=${activeId}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-accent"
+                  aria-label="Open on YouTube"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+                <button
+                  onClick={() => setActiveId(null)}
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                  aria-label="Close player"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+            <div
+              className={
+                playerSize === "small"
+                  ? "mx-auto w-full max-w-md"
+                  : playerSize === "theatre"
+                    ? "mx-[calc(50%-50vw)] w-screen"
+                    : "w-full"
+              }
+            >
+              <div className="relative w-full" style={{ aspectRatio: "16 / 9" }}>
+                <iframe
+                  key={activeId}
+                  src={`https://www.youtube.com/embed/${activeId}?autoplay=1`}
+                  title="YouTube player"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="absolute inset-0 h-full w-full"
+                />
+              </div>
             </div>
           </Card>
         )}
@@ -474,6 +531,13 @@ function GalleryCard({
             <span className="truncate">{v.author}</span>
           </label>
           <div className="flex items-center gap-0.5">
+            <button
+              onClick={() => copyLink(v.id)}
+              className="rounded p-1 hover:bg-accent"
+              aria-label="Copy link"
+            >
+              <Copy className="h-3.5 w-3.5" />
+            </button>
             <a
               href={v.url}
               target="_blank"
@@ -524,6 +588,13 @@ function ListRow({
       <div className="flex items-center gap-1">
         <button onClick={onPlay} className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm hover:shadow-md">
           <Play className="h-3.5 w-3.5 fill-current" />
+        </button>
+        <button
+          onClick={() => copyLink(v.id)}
+          className="rounded p-2 text-muted-foreground hover:bg-accent"
+          aria-label="Copy link"
+        >
+          <Copy className="h-4 w-4" />
         </button>
         <a
           href={v.url}
@@ -576,6 +647,13 @@ function CompactRow({
       <span className="hidden truncate text-xs text-muted-foreground sm:block sm:w-40">
         {v.author}
       </span>
+      <button
+        onClick={() => copyLink(v.id)}
+        className="rounded p-1 text-muted-foreground hover:bg-accent"
+        aria-label="Copy link"
+      >
+        <Copy className="h-3.5 w-3.5" />
+      </button>
       <a
         href={v.url}
         target="_blank"
@@ -591,5 +669,31 @@ function CompactRow({
         <Trash2 className="h-3.5 w-3.5" />
       </button>
     </div>
+  );
+}
+function PlayerSizeBtn({
+  icon,
+  label,
+  active,
+  onClick,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium transition-all ${
+        active
+          ? "bg-primary text-primary-foreground shadow-sm"
+          : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+      }`}
+      aria-pressed={active}
+    >
+      {icon}
+      <span className="hidden sm:inline">{label}</span>
+    </button>
   );
 }
