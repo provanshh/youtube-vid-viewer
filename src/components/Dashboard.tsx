@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -11,12 +10,29 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import youtubeLogo from "@/assets/youtube-logo.png";
 import {
   LayoutGrid,
   List as ListIcon,
   Rows3,
-  Plus,
   Search,
   Trash2,
   ExternalLink,
@@ -24,7 +40,14 @@ import {
   ClipboardPaste,
   Moon,
   Sun,
+  Play,
+  Film,
+  Clapperboard,
+  Tv,
+  FileText,
 } from "lucide-react";
+
+type Category = "videos" | "shorts" | "channel" | "posts";
 
 type Video = {
   id: string;
@@ -32,11 +55,20 @@ type Video = {
   author: string;
   thumbnail: string;
   url: string;
+  category: Category;
+  watched: boolean;
 };
 
 type ViewMode = "gallery" | "list" | "compact";
 
-const STORAGE_KEY = "tubedeck.videos.v1";
+const STORAGE_KEY = "tubedeck.videos.v2";
+
+const CATEGORIES: { value: Category; label: string; icon: React.ReactNode }[] = [
+  { value: "videos", label: "Videos", icon: <Film className="h-4 w-4" /> },
+  { value: "shorts", label: "Shorts", icon: <Clapperboard className="h-4 w-4" /> },
+  { value: "channel", label: "Channel", icon: <Tv className="h-4 w-4" /> },
+  { value: "posts", label: "Posts", icon: <FileText className="h-4 w-4" /> },
+];
 
 function extractVideoId(input: string): string | null {
   const s = input.trim();
@@ -78,7 +110,6 @@ async function fetchMeta(id: string): Promise<{ title: string; author: string }>
 
 export default function Dashboard() {
   const [videos, setVideos] = useState<Video[]>([]);
-  const [single, setSingle] = useState("");
   const [bulk, setBulk] = useState("");
   const [search, setSearch] = useState("");
   const [view, setView] = useState<ViewMode>("gallery");
@@ -86,6 +117,8 @@ export default function Dashboard() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [dark, setDark] = useState(false);
+  const [category, setCategory] = useState<Category>("videos");
+  const [confirmId, setConfirmId] = useState<string | null>(null);
 
   useEffect(() => {
     const stored = localStorage.getItem("tubedeck.theme");
@@ -128,7 +161,7 @@ export default function Dashboard() {
           .filter((x): x is string => !!x),
       ),
     );
-    const existing = new Set(videos.map((v) => v.id));
+    const existing = new Set(videos.filter((v) => v.category === category).map((v) => v.id));
     const fresh = ids.filter((id) => !existing.has(id));
     if (fresh.length === 0) return;
     setLoading(true);
@@ -141,18 +174,14 @@ export default function Dashboard() {
           author: meta.author,
           thumbnail: `https://i.ytimg.com/vi/${id}/hqdefault.jpg`,
           url: `https://www.youtube.com/watch?v=${id}`,
+          category,
+          watched: false,
         } satisfies Video;
       }),
     );
     setVideos((prev) => [...metas, ...prev]);
     setLoading(false);
   }
-
-  const handleAddSingle = async () => {
-    if (!single.trim()) return;
-    await addFromInputs([single]);
-    setSingle("");
-  };
 
   const handleAddBulk = async () => {
     if (!bulk.trim()) return;
@@ -162,112 +191,105 @@ export default function Dashboard() {
     setBulkOpen(false);
   };
 
-  const remove = (id: string) =>
-    setVideos((prev) => prev.filter((v) => v.id !== id));
+  const confirmRemove = () => {
+    if (!confirmId) return;
+    setVideos((prev) => prev.filter((v) => v.id !== confirmId));
+    setConfirmId(null);
+  };
+
+  const toggleWatched = (id: string) =>
+    setVideos((prev) =>
+      prev.map((v) => (v.id === id ? { ...v, watched: !v.watched } : v)),
+    );
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return videos;
-    return videos.filter(
+    const inCat = videos.filter((v) => v.category === category);
+    if (!q) return inCat;
+    return inCat.filter(
       (v) =>
         v.title.toLowerCase().includes(q) ||
         v.author.toLowerCase().includes(q),
     );
-  }, [videos, search]);
+  }, [videos, search, category]);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2.5">
+      <header className="sticky top-0 z-20 border-b border-border bg-background/70 backdrop-blur-xl">
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-3 py-2 sm:gap-3 sm:px-4">
           <div className="flex items-center gap-1.5">
             <img src={youtubeLogo} alt="TubeDeck" className="h-6 w-auto" />
-            <span className="text-lg font-semibold tracking-tight">TubeDeck</span>
+            <span className="text-base font-semibold tracking-tight">TubeDeck</span>
           </div>
 
-          {/* Center: search + add + bulk */}
-          <div className="mx-auto flex flex-1 max-w-2xl items-center justify-center gap-2 px-2">
-            <div className="flex flex-1 items-stretch">
-              <div className="relative flex-1">
-                <Input
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search"
-                  className="h-10 rounded-l-full rounded-r-none border-r-0 pl-4 pr-10"
-                />
-              </div>
-              <button
-                aria-label="Search"
-                className="flex h-10 w-14 items-center justify-center rounded-r-full border border-border bg-muted/60 hover:bg-muted"
-              >
-                <Search className="h-4 w-4 text-muted-foreground" />
-              </button>
+          {/* Category dropdown */}
+          <Select value={category} onValueChange={(v) => setCategory(v as Category)}>
+            <SelectTrigger className="h-8 w-auto gap-1.5 rounded-full border-border bg-card px-3 text-xs font-medium shadow-sm hover:shadow-md">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent className="rounded-xl">
+              {CATEGORIES.map((c) => (
+                <SelectItem key={c.value} value={c.value} className="rounded-md text-xs">
+                  <span className="flex items-center gap-2">{c.icon}{c.label}</span>
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          {/* Center: search */}
+          <div className="order-last flex w-full items-stretch sm:order-none sm:mx-auto sm:w-auto sm:max-w-xl sm:flex-1">
+            <div className="relative flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && search.trim() && extractVideoId(search)) {
+                    addFromInputs([search]);
+                    setSearch("");
+                  }
+                }}
+                placeholder="Search or paste a YouTube URL…"
+                className="h-8 rounded-full border-border bg-card pl-8 pr-3 text-xs shadow-sm focus-visible:shadow-md"
+              />
             </div>
-            <button
-              onClick={handleAddSingle}
-              aria-label="Add video"
-              title="Add video from URL in search"
-              className="flex h-10 w-10 items-center justify-center rounded-full bg-muted/60 hover:bg-muted"
-            >
-              <Plus className="h-5 w-5" />
-            </button>
-            <button
-              onClick={() => setBulkOpen(true)}
-              className="hidden sm:inline-flex h-10 items-center gap-1.5 rounded-full bg-foreground px-3.5 text-sm font-medium text-background hover:opacity-90"
-            >
-              <ClipboardPaste className="h-4 w-4" />
-              Bulk add
-            </button>
           </div>
 
-          <div className="flex items-center gap-2">
-            <Badge variant="secondary" className="hidden md:inline-flex">
-              {videos.length} saved
-            </Badge>
-            <button
-              onClick={toggleDark}
-              aria-label="Toggle theme"
-              className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-muted"
-            >
-              {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
-            </button>
-          </div>
+          <button
+            onClick={() => setBulkOpen(true)}
+            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-foreground px-3 text-xs font-medium text-background shadow-md transition-shadow hover:shadow-lg"
+          >
+            <ClipboardPaste className="h-3.5 w-3.5" />
+            <span className="hidden sm:inline">Bulk add</span>
+          </button>
+
+          <button
+            onClick={toggleDark}
+            aria-label="Toggle theme"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-card shadow-sm hover:shadow-md"
+          >
+            {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+          </button>
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl space-y-6 px-4 py-6">
-        {/* Single-URL paste row */}
-        <section className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <div className="flex flex-1 gap-2">
-            <Input
-              placeholder="Paste a YouTube URL and press Enter or +"
-              value={single}
-              onChange={(e) => setSingle(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleAddSingle();
-              }}
-            />
-            <Button onClick={handleAddSingle} disabled={loading}>
-              <Plus className="h-4 w-4" /> Add
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => setBulkOpen(true)}
-              className="sm:hidden"
-            >
-              <ClipboardPaste className="h-4 w-4" />
-            </Button>
-          </div>
-          <div className="inline-flex items-center self-end rounded-md border border-border bg-card p-1 sm:self-auto">
-            <ViewBtn icon={<LayoutGrid className="h-4 w-4" />} label="Gallery" active={view === "gallery"} onClick={() => setView("gallery")} />
-            <ViewBtn icon={<ListIcon className="h-4 w-4" />} label="List" active={view === "list"} onClick={() => setView("list")} />
-            <ViewBtn icon={<Rows3 className="h-4 w-4" />} label="Compact" active={view === "compact"} onClick={() => setView("compact")} />
+      <main className="mx-auto max-w-7xl space-y-5 px-3 py-5 sm:px-4">
+        {/* View toggle */}
+        <section className="flex items-center justify-between gap-2">
+          <p className="text-xs text-muted-foreground">
+            {filtered.length} {CATEGORIES.find((c) => c.value === category)?.label.toLowerCase()}
+          </p>
+          <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 shadow-sm">
+            <ViewBtn icon={<LayoutGrid className="h-3.5 w-3.5" />} label="Gallery" active={view === "gallery"} onClick={() => setView("gallery")} />
+            <ViewBtn icon={<ListIcon className="h-3.5 w-3.5" />} label="List" active={view === "list"} onClick={() => setView("list")} />
+            <ViewBtn icon={<Rows3 className="h-3.5 w-3.5" />} label="Compact" active={view === "compact"} onClick={() => setView("compact")} />
           </div>
         </section>
 
         {/* Player */}
         {activeId && (
-          <Card className="overflow-hidden p-0">
+          <Card className="overflow-hidden rounded-2xl p-0 shadow-lg">
             <div className="relative w-full" style={{ aspectRatio: "16 / 9" }}>
               <iframe
                 key={activeId}
@@ -291,34 +313,35 @@ export default function Dashboard() {
 
         {/* Results */}
         {filtered.length === 0 ? (
-          <Card className="flex flex-col items-center justify-center gap-2 p-12 text-center">
+          <Card className="flex flex-col items-center justify-center gap-2 rounded-2xl p-12 text-center shadow-sm">
             <Youtube className="h-10 w-10 text-muted-foreground" />
-            <p className="text-sm font-medium">No videos yet</p>
+            <p className="text-sm font-medium">Nothing here yet</p>
             <p className="text-xs text-muted-foreground">
-              Paste a link above to get started.
+              Paste a YouTube link in the search bar or use Bulk add.
             </p>
           </Card>
         ) : view === "gallery" ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
             {filtered.map((v) => (
-              <GalleryCard key={v.id} v={v} onPlay={() => setActiveId(v.id)} onRemove={() => remove(v.id)} />
+              <GalleryCard key={v.id} v={v} onPlay={() => setActiveId(v.id)} onRemove={() => setConfirmId(v.id)} onToggleWatched={() => toggleWatched(v.id)} />
             ))}
           </div>
         ) : view === "list" ? (
           <div className="flex flex-col gap-2">
             {filtered.map((v) => (
-              <ListRow key={v.id} v={v} onPlay={() => setActiveId(v.id)} onRemove={() => remove(v.id)} />
+              <ListRow key={v.id} v={v} onPlay={() => setActiveId(v.id)} onRemove={() => setConfirmId(v.id)} onToggleWatched={() => toggleWatched(v.id)} />
             ))}
           </div>
         ) : (
-          <div className="overflow-hidden rounded-md border border-border">
+          <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
             {filtered.map((v, i) => (
               <CompactRow
                 key={v.id}
                 v={v}
                 index={i}
                 onPlay={() => setActiveId(v.id)}
-                onRemove={() => remove(v.id)}
+                onRemove={() => setConfirmId(v.id)}
+                onToggleWatched={() => toggleWatched(v.id)}
               />
             ))}
           </div>
@@ -327,13 +350,13 @@ export default function Dashboard() {
 
       {/* Bulk paste modal */}
       <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
-        <DialogContent className="sm:max-w-xl backdrop-blur">
+        <DialogContent className="rounded-2xl shadow-2xl sm:max-w-xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ClipboardPaste className="h-5 w-5" /> Bulk add videos
             </DialogTitle>
             <DialogDescription>
-              Paste multiple YouTube links separated by commas, spaces or new lines.
+              Adding to <span className="font-medium text-foreground">{CATEGORIES.find((c) => c.value === category)?.label}</span>. Paste multiple links separated by commas, spaces or new lines.
             </DialogDescription>
           </DialogHeader>
           <Textarea
@@ -341,18 +364,39 @@ export default function Dashboard() {
             value={bulk}
             onChange={(e) => setBulk(e.target.value)}
             rows={6}
-            className="resize-none"
+            className="resize-none rounded-xl"
           />
           <div className="flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => setBulkOpen(false)}>
+            <Button variant="ghost" size="sm" className="rounded-full" onClick={() => setBulkOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={handleAddBulk} disabled={loading || !bulk.trim()}>
+            <Button size="sm" className="rounded-full shadow-md" onClick={handleAddBulk} disabled={loading || !bulk.trim()}>
               Import all
             </Button>
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete confirmation */}
+      <AlertDialog open={!!confirmId} onOpenChange={(o) => !o && setConfirmId(null)}>
+        <AlertDialogContent className="rounded-2xl">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this item?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove it from your saved list. This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-full">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmRemove}
+              className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
@@ -371,9 +415,9 @@ function ViewBtn({
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 rounded px-2.5 py-1.5 text-xs font-medium transition-colors ${
+      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-all ${
         active
-          ? "bg-primary text-primary-foreground"
+          ? "bg-primary text-primary-foreground shadow-md"
           : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
       }`}
       aria-pressed={active}
@@ -384,17 +428,25 @@ function ViewBtn({
   );
 }
 
+function watchedBorder(watched: boolean) {
+  return watched
+    ? "border-2 border-emerald-500/70 shadow-[0_0_0_3px_rgba(16,185,129,0.15)]"
+    : "border-2 border-rose-500/60 shadow-[0_0_0_3px_rgba(244,63,94,0.12)]";
+}
+
 function GalleryCard({
   v,
   onPlay,
   onRemove,
+  onToggleWatched,
 }: {
   v: Video;
   onPlay: () => void;
   onRemove: () => void;
+  onToggleWatched: () => void;
 }) {
   return (
-    <Card className="group overflow-hidden p-0 transition-shadow hover:shadow-md">
+    <Card className={`group overflow-hidden rounded-2xl p-0 transition-all hover:-translate-y-0.5 hover:shadow-lg ${watchedBorder(v.watched)}`}>
       <button
         onClick={onPlay}
         className="relative block w-full overflow-hidden"
@@ -407,17 +459,20 @@ function GalleryCard({
           className="h-full w-full object-cover transition-transform group-hover:scale-105"
         />
         <span className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/30">
-          <span className="rounded-full bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground opacity-0 transition-opacity group-hover:opacity-100">
-            ▶ Play
+          <span className="flex h-9 w-9 items-center justify-center rounded-full bg-primary text-primary-foreground opacity-0 shadow-lg transition-opacity group-hover:opacity-100">
+            <Play className="h-4 w-4 fill-current" />
           </span>
         </span>
       </button>
-      <div className="p-3">
-        <p className="line-clamp-2 text-sm font-medium leading-snug">
+      <div className="p-2.5">
+        <p className="line-clamp-2 text-xs font-medium leading-snug">
           {v.title}
         </p>
-        <div className="mt-1 flex items-center justify-between text-xs text-muted-foreground">
-          <span className="truncate">{v.author}</span>
+        <div className="mt-1.5 flex items-center justify-between gap-1 text-[11px] text-muted-foreground">
+          <label className="flex min-w-0 flex-1 items-center gap-1.5 cursor-pointer">
+            <Checkbox checked={v.watched} onCheckedChange={onToggleWatched} className="h-3.5 w-3.5" />
+            <span className="truncate">{v.author}</span>
+          </label>
           <div className="flex items-center gap-0.5">
             <a
               href={v.url}
@@ -446,16 +501,19 @@ function ListRow({
   v,
   onPlay,
   onRemove,
+  onToggleWatched,
 }: {
   v: Video;
   onPlay: () => void;
   onRemove: () => void;
+  onToggleWatched: () => void;
 }) {
   return (
-    <Card className="flex items-center gap-3 p-2">
+    <Card className={`flex items-center gap-3 rounded-xl p-2 transition-shadow hover:shadow-md ${watchedBorder(v.watched)}`}>
+      <Checkbox checked={v.watched} onCheckedChange={onToggleWatched} />
       <button
         onClick={onPlay}
-        className="relative h-20 w-36 flex-shrink-0 overflow-hidden rounded-md"
+        className="relative h-16 w-28 flex-shrink-0 overflow-hidden rounded-lg"
       >
         <img src={v.thumbnail} alt={v.title} loading="lazy" className="h-full w-full object-cover" />
       </button>
@@ -464,9 +522,9 @@ function ListRow({
         <p className="mt-0.5 truncate text-xs text-muted-foreground">{v.author}</p>
       </div>
       <div className="flex items-center gap-1">
-        <Button variant="ghost" size="sm" onClick={onPlay}>
-          Play
-        </Button>
+        <button onClick={onPlay} className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm hover:shadow-md">
+          <Play className="h-3.5 w-3.5 fill-current" />
+        </button>
         <a
           href={v.url}
           target="_blank"
@@ -491,18 +549,21 @@ function CompactRow({
   index,
   onPlay,
   onRemove,
+  onToggleWatched,
 }: {
   v: Video;
   index: number;
   onPlay: () => void;
   onRemove: () => void;
+  onToggleWatched: () => void;
 }) {
   return (
     <div
-      className={`flex items-center gap-3 px-3 py-1.5 text-sm ${
-        index % 2 === 0 ? "bg-card" : "bg-muted/40"
-      }`}
+      className={`flex items-center gap-2.5 border-l-4 px-3 py-1.5 text-sm ${
+        v.watched ? "border-l-emerald-500" : "border-l-rose-500"
+      } ${index % 2 === 0 ? "bg-card" : "bg-muted/40"}`}
     >
+      <Checkbox checked={v.watched} onCheckedChange={onToggleWatched} />
       <span className="w-6 text-right text-xs tabular-nums text-muted-foreground">
         {index + 1}
       </span>
