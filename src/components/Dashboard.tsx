@@ -509,41 +509,50 @@ export default function Dashboard() {
           </DropdownMenu>
         </div>
 
-        {/* Paste bar below nav */}
+        {/* Paste bar + views + bulk add */}
         <div className="border-t border-border/60 bg-card/30">
-          <div className="mx-auto flex max-w-7xl items-center gap-2 px-3 py-1.5 sm:px-4">
-            <Plus className="h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              value={paste}
-              onChange={(e) => setPaste(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handlePaste();
-              }}
-              placeholder="Paste a YouTube link and hit Enter — auto-sorted into the right category"
-              className="h-7 flex-1 rounded-full border-transparent bg-background/60 px-3 text-xs shadow-none focus-visible:border-border"
-            />
-            <Button
-              size="sm"
-              variant="secondary"
-              className="h-7 rounded-full px-3 text-xs"
-              onClick={handlePaste}
-              disabled={!paste.trim() || loading}
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-3 py-1.5 sm:flex-nowrap sm:px-4">
+            <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 shadow-sm">
+              <ViewBtn icon={<LayoutGrid className="h-3.5 w-3.5" />} label="Gallery" active={view === "gallery"} onClick={() => setView("gallery")} />
+              <ViewBtn icon={<ListIcon className="h-3.5 w-3.5" />} label="List" active={view === "list"} onClick={() => setView("list")} />
+              <ViewBtn icon={<Rows3 className="h-3.5 w-3.5" />} label="Compact" active={view === "compact"} onClick={() => setView("compact")} />
+            </div>
+
+            <div className="flex flex-1 items-center gap-1.5 rounded-full bg-background/60 px-3 shadow-inner ring-1 ring-border/40 focus-within:ring-border">
+              <Plus className="h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                value={paste}
+                onChange={(e) => setPaste(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handlePaste();
+                }}
+                placeholder="Paste a YouTube link and hit Enter — auto-sorted"
+                className="h-7 flex-1 border-0 bg-transparent px-0 text-xs shadow-none focus-visible:ring-0"
+              />
+              <Button
+                size="sm"
+                variant="secondary"
+                className="h-6 rounded-full px-3 text-[11px]"
+                onClick={handlePaste}
+                disabled={!paste.trim() || loading}
+              >
+                Add
+              </Button>
+            </div>
+
+            <button
+              onClick={() => setBulkOpen(true)}
+              className="inline-flex h-8 items-center gap-1.5 rounded-full bg-foreground px-3 text-xs font-medium text-background shadow-md transition-shadow hover:shadow-lg"
             >
-              Add
-            </Button>
+              <ClipboardPaste className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Bulk add</span>
+            </button>
           </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-7xl space-y-4 px-3 py-4 sm:px-4">
-        {/* View toggle */}
-        <section className="flex items-center justify-end gap-2">
-          <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 shadow-sm">
-            <ViewBtn icon={<LayoutGrid className="h-3.5 w-3.5" />} label="Gallery" active={view === "gallery"} onClick={() => setView("gallery")} />
-            <ViewBtn icon={<ListIcon className="h-3.5 w-3.5" />} label="List" active={view === "list"} onClick={() => setView("list")} />
-            <ViewBtn icon={<Rows3 className="h-3.5 w-3.5" />} label="Compact" active={view === "compact"} onClick={() => setView("compact")} />
-          </div>
-        </section>
+
 
         {/* Player */}
         {activeId && playerEmbedSrc && (
