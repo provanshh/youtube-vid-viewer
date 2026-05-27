@@ -592,6 +592,51 @@ export default function Dashboard() {
                 </button>
               </div>
             </div>
+            {activeId.startsWith("shorts:") && playerSize !== "fullscreen" ? (
+              <div className="flex w-full items-center justify-center bg-black py-4">
+                <div className="relative flex items-center gap-3">
+                  <div
+                    className="relative overflow-hidden rounded-xl bg-black"
+                    style={{ aspectRatio: "9 / 16", height: "min(80vh, 720px)" }}
+                  >
+                    <iframe
+                      key={activeId}
+                      src={playerEmbedSrc}
+                      title="YouTube short"
+                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                      allowFullScreen
+                      className="absolute inset-0 h-full w-full"
+                    />
+                  </div>
+                  <div className="flex flex-col gap-3">
+                    <button
+                      onClick={() => {
+                        const list = videos.filter((x) => x.category === "shorts");
+                        const idx = list.findIndex((x) => `${x.category}:${x.id}` === activeId);
+                        const prev = list[idx - 1];
+                        if (prev) setActiveId(`${prev.category}:${prev.id}`);
+                      }}
+                      className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-secondary-foreground shadow hover:bg-accent disabled:opacity-40"
+                      aria-label="Previous short"
+                    >
+                      <ChevronUp className="h-5 w-5" />
+                    </button>
+                    <button
+                      onClick={() => {
+                        const list = videos.filter((x) => x.category === "shorts");
+                        const idx = list.findIndex((x) => `${x.category}:${x.id}` === activeId);
+                        const next = list[idx + 1];
+                        if (next) setActiveId(`${next.category}:${next.id}`);
+                      }}
+                      className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-secondary-foreground shadow hover:bg-accent disabled:opacity-40"
+                      aria-label="Next short"
+                    >
+                      <ChevronDown className="h-5 w-5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
             <div
               className={
                 playerSize === "small"
@@ -624,6 +669,7 @@ export default function Dashboard() {
                 </div>
               )}
             </div>
+            )}
           </Card>
         )}
 
