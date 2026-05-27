@@ -185,22 +185,27 @@ function Landing() {
           </p>
         </div>
         <div className="mt-14 linkee-marquee-mask overflow-hidden">
-          <div className="linkee-marquee-track flex w-max gap-5">
-            {[...FEATURES, ...FEATURES].map((f, i) => {
+          <div
+            className="linkee-carousel-track flex"
+            style={{
+              transform: `translateX(calc(50% - ${activeFeature * 308}px - 144px))`,
+            }}
+          >
+            {FEATURES.map((f, i) => {
               const Icon = f.icon;
-              const isCenter = i % FEATURES.length === Math.floor(FEATURES.length / 2);
+              const isActive = i === activeFeature;
               return (
                 <div
                   key={i}
-                  className={`w-72 shrink-0 rounded-2xl border p-6 transition-all ${
-                    isCenter
-                      ? "-translate-y-4 border-white/25 bg-white/[0.08] shadow-2xl shadow-white/5"
-                      : "border-white/10 bg-white/[0.03]"
+                  className={`mx-2.5 w-72 shrink-0 rounded-2xl border p-6 transition-all duration-500 ${
+                    isActive
+                      ? "-translate-y-5 scale-105 border-white/25 bg-white/[0.08] shadow-2xl shadow-white/10"
+                      : "border-white/10 bg-white/[0.03] opacity-60"
                   }`}
                 >
                   <div
-                    className={`inline-flex h-10 w-10 items-center justify-center rounded-xl ${
-                      isCenter ? "bg-white text-black" : "bg-white/10 text-white"
+                    className={`inline-flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
+                      isActive ? "bg-white text-black" : "bg-white/10 text-white"
                     }`}
                   >
                     <Icon className="h-5 w-5" />
@@ -212,7 +217,22 @@ function Landing() {
             })}
           </div>
         </div>
+        <div className="mt-8 flex items-center justify-center gap-1.5">
+          {FEATURES.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => setActiveFeature(i)}
+              aria-label={`Go to feature ${i + 1}`}
+              className={`rounded-full transition-all ${
+                i === activeFeature
+                  ? "h-1.5 w-5 bg-white"
+                  : "h-1.5 w-1.5 bg-white/30 hover:bg-white/50"
+              }`}
+            />
+          ))}
+        </div>
       </section>
+
 
 
       {/* Pricing */}
