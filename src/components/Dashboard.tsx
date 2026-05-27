@@ -64,6 +64,8 @@ import {
   Plus,
   Eye,
   ArrowUpDown,
+  ChevronUp,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 
