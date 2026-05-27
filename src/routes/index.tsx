@@ -403,7 +403,7 @@ function AuthDialog({
 
   const isSignup = mode === "signup";
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = (e: FormEvent) => {
     e.preventDefault();
     onClose();
     navigate({ to: "/app" });
@@ -509,7 +509,7 @@ function AuthDialog({
 function Field({
   icon: Icon,
   ...props
-}: React.InputHTMLAttributes<HTMLInputElement> & { icon: LucideIcon }) {
+}: InputHTMLAttributes<HTMLInputElement> & { icon: LucideIcon }) {
   return (
     <div className="group relative">
       <Icon className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/40 transition-colors group-focus-within:text-white/80" />
