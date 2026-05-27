@@ -172,6 +172,8 @@ export default function Dashboard() {
   const [dark, setDark] = useState(false);
   const [category, setCategory] = useState<Category>("videos");
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [eyeFilter, setEyeFilter] = useState<EyeFilter>("all");
+  const [sortByChannel, setSortByChannel] = useState(false);
   const playerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
