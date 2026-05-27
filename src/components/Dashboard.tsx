@@ -45,7 +45,26 @@ import {
   Clapperboard,
   Tv,
   FileText,
+  Copy,
+  Check,
+  Minimize2,
+  Maximize2,
+  Monitor,
+  X,
 } from "lucide-react";
+import { toast } from "sonner";
+
+type PlayerSize = "small" | "default" | "theatre";
+
+async function copyLink(id: string) {
+  const url = `https://www.youtube.com/watch?v=${id}`;
+  try {
+    await navigator.clipboard.writeText(url);
+    toast.success("Link copied");
+  } catch {
+    toast.error("Could not copy");
+  }
+}
 
 type Category = "videos" | "shorts" | "channel" | "posts";
 
