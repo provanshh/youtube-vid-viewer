@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent, type InputHTMLAttributes } from "react";
 import {
   Sparkles,
   Check,
