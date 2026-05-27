@@ -36,7 +36,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
-import youtubeLogo from "@/assets/youtube-logo.png";
+import { Link } from "@tanstack/react-router";
+import { Home } from "lucide-react";
 import {
   LayoutGrid,
   List as ListIcon,
@@ -436,10 +437,13 @@ export default function Dashboard() {
       {/* Header */}
       <header className="sticky top-0 z-20 border-b border-border bg-background/70 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-3 py-2 sm:gap-3 sm:px-4">
-          <div className="flex items-center gap-1.5">
-            <img src={youtubeLogo} alt="TubeDeck" className="h-6 w-auto" />
-            <span className="text-base font-semibold tracking-tight">TubeDeck</span>
-          </div>
+          <Link
+            to="/"
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm hover:shadow-md transition-all hover:scale-105"
+            aria-label="Home"
+          >
+            <Home className="h-4 w-4" />
+          </Link>
 
           <Select value={category} onValueChange={(v) => setCategory(v as Category)}>
             <SelectTrigger className="h-8 w-auto gap-1.5 rounded-full border-border bg-card px-3 text-xs font-medium shadow-sm hover:shadow-md">
