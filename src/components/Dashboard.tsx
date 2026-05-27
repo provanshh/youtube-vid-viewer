@@ -1067,3 +1067,18 @@ function PlayerSizeBtn({
     </button>
   );
 }
+
+function NowPlayingBars() {
+  return (
+    <span
+      aria-hidden
+      className="inline-flex h-3.5 items-end gap-[2px]"
+      title="Playing"
+    >
+      <span className="block w-[2px] rounded-sm bg-primary tubedeck-bar tubedeck-bar-1" />
+      <span className="block w-[2px] rounded-sm bg-primary tubedeck-bar tubedeck-bar-2" />
+      <span className="block w-[2px] rounded-sm bg-primary tubedeck-bar tubedeck-bar-3" />
+      <span className="block w-[2px] rounded-sm bg-primary tubedeck-bar tubedeck-bar-4" />
+    </span>
+  );
+}
