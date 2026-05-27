@@ -134,6 +134,7 @@ export default function Dashboard() {
   const [view, setView] = useState<ViewMode>("gallery");
   const [loading, setLoading] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [playerSize, setPlayerSize] = useState<PlayerSize>("default");
   const [bulkOpen, setBulkOpen] = useState(false);
   const [dark, setDark] = useState(false);
   const [category, setCategory] = useState<Category>("videos");
