@@ -10,9 +10,21 @@ import {
   Rocket,
   ChevronDown,
   Download,
+  Monitor,
+  Smartphone,
+  Library,
+  Eye,
+  ClipboardCopy,
+  Clipboard,
+  LayoutGrid,
+  Lock,
+  Palette,
+  type LucideIcon,
 } from "lucide-react";
 import linkeeLogo from "@/assets/linkee-logo.png";
 import fireGif from "@/assets/fire.gif";
+import CurvedLoop from "@/components/CurvedLoop";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
