@@ -820,6 +820,44 @@ export default function Dashboard() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Profile</DialogTitle>
+            <DialogDescription>Built by Provansh</DialogDescription>
+          </DialogHeader>
+          <div className="flex items-center gap-4 py-2">
+            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 text-2xl font-bold text-primary-foreground">
+              P
+            </div>
+            <div>
+              <div className="text-base font-semibold">Provansh</div>
+              <div className="text-xs text-muted-foreground">Creator of TubeDeck</div>
+            </div>
+          </div>
+          <div className="flex flex-col gap-2">
+            <a
+              href="https://x.com/provanshh"
+              target="_blank"
+              rel="noreferrer noopener"
+              className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm hover:bg-accent"
+            >
+              <span>𝕏 / Twitter</span>
+              <span className="text-xs text-muted-foreground">@provanshh</span>
+            </a>
+            <a
+              href="https://www.linkedin.com/in/provanshh/"
+              target="_blank"
+              rel="noreferrer noopener"
+              className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm hover:bg-accent"
+            >
+              <span>LinkedIn</span>
+              <span className="text-xs text-muted-foreground">in/provanshh</span>
+            </a>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
