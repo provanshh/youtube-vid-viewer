@@ -5,6 +5,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import youtubeLogo from "@/assets/youtube-logo.png";
+import {
   LayoutGrid,
   List as ListIcon,
   Rows3,
@@ -14,6 +22,8 @@ import {
   ExternalLink,
   Youtube,
   ClipboardPaste,
+  Moon,
+  Sun,
 } from "lucide-react";
 
 type Video = {
@@ -74,6 +84,24 @@ export default function Dashboard() {
   const [view, setView] = useState<ViewMode>("gallery");
   const [loading, setLoading] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [dark, setDark] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem("tubedeck.theme");
+    const prefersDark =
+      stored === "dark" ||
+      (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    setDark(prefersDark);
+    document.documentElement.classList.toggle("dark", prefersDark);
+  }, []);
+
+  const toggleDark = () => {
+    const next = !dark;
+    setDark(next);
+    document.documentElement.classList.toggle("dark", next);
+    localStorage.setItem("tubedeck.theme", next ? "dark" : "light");
+  };
 
   useEffect(() => {
     try {
@@ -131,6 +159,7 @@ export default function Dashboard() {
     const parts = bulk.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
     await addFromInputs(parts);
     setBulk("");
+    setBulkOpen(false);
   };
 
   const remove = (id: string) =>
@@ -150,85 +179,86 @@ export default function Dashboard() {
     <div className="min-h-screen bg-background text-foreground">
       {/* Header */}
       <header className="sticky top-0 z-20 border-b border-border bg-background/80 backdrop-blur">
-        <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-3">
-          <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Youtube className="h-5 w-5" />
+        <div className="mx-auto flex max-w-7xl items-center gap-3 px-4 py-2.5">
+          <div className="flex items-center gap-1.5">
+            <img src={youtubeLogo} alt="TubeDeck" className="h-6 w-auto" />
+            <span className="text-lg font-semibold tracking-tight">TubeDeck</span>
           </div>
-          <div className="flex-1">
-            <h1 className="text-base font-semibold leading-none">TubeDeck</h1>
-            <p className="text-xs text-muted-foreground">
-              Your personal YouTube dashboard
-            </p>
+
+          {/* Center: search + add + bulk */}
+          <div className="mx-auto flex flex-1 max-w-2xl items-center justify-center gap-2 px-2">
+            <div className="flex flex-1 items-stretch">
+              <div className="relative flex-1">
+                <Input
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search"
+                  className="h-10 rounded-l-full rounded-r-none border-r-0 pl-4 pr-10"
+                />
+              </div>
+              <button
+                aria-label="Search"
+                className="flex h-10 w-14 items-center justify-center rounded-r-full border border-border bg-muted/60 hover:bg-muted"
+              >
+                <Search className="h-4 w-4 text-muted-foreground" />
+              </button>
+            </div>
+            <button
+              onClick={handleAddSingle}
+              aria-label="Add video"
+              title="Add video from URL in search"
+              className="flex h-10 w-10 items-center justify-center rounded-full bg-muted/60 hover:bg-muted"
+            >
+              <Plus className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => setBulkOpen(true)}
+              className="hidden sm:inline-flex h-10 items-center gap-1.5 rounded-full bg-foreground px-3.5 text-sm font-medium text-background hover:opacity-90"
+            >
+              <ClipboardPaste className="h-4 w-4" />
+              Bulk add
+            </button>
           </div>
-          <Badge variant="secondary" className="hidden sm:inline-flex">
-            {videos.length} saved
-          </Badge>
+
+          <div className="flex items-center gap-2">
+            <Badge variant="secondary" className="hidden md:inline-flex">
+              {videos.length} saved
+            </Badge>
+            <button
+              onClick={toggleDark}
+              aria-label="Toggle theme"
+              className="flex h-10 w-10 items-center justify-center rounded-full hover:bg-muted"
+            >
+              {dark ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}
+            </button>
+          </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-7xl space-y-6 px-4 py-6">
-        {/* Inputs */}
-        <section className="grid gap-4 lg:grid-cols-3">
-          <Card className="p-4 lg:col-span-1">
-            <label className="mb-2 flex items-center gap-2 text-sm font-medium">
-              <Plus className="h-4 w-4" /> Add a video
-            </label>
-            <div className="flex gap-2">
-              <Input
-                placeholder="Paste YouTube URL…"
-                value={single}
-                onChange={(e) => setSingle(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleAddSingle();
-                }}
-              />
-              <Button onClick={handleAddSingle} disabled={loading}>
-                Add
-              </Button>
-            </div>
-            <p className="mt-2 text-xs text-muted-foreground">
-              Supports youtube.com, youtu.be, shorts, and embeds.
-            </p>
-          </Card>
-
-          <Card className="p-4 lg:col-span-2">
-            <label className="mb-2 flex items-center gap-2 text-sm font-medium">
-              <ClipboardPaste className="h-4 w-4" /> Bulk paste
-            </label>
-            <Textarea
-              placeholder="Paste multiple links separated by commas, spaces or new lines…"
-              value={bulk}
-              onChange={(e) => setBulk(e.target.value)}
-              rows={3}
-              className="resize-none"
-            />
-            <div className="mt-2 flex items-center justify-between">
-              <p className="text-xs text-muted-foreground">
-                We'll dedupe and fetch each video's title and thumbnail.
-              </p>
-              <Button
-                onClick={handleAddBulk}
-                disabled={loading || !bulk.trim()}
-                variant="default"
-              >
-                Import all
-              </Button>
-            </div>
-          </Card>
-        </section>
-
-        {/* Toolbar */}
-        <section className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div className="relative w-full sm:max-w-md">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        {/* Single-URL paste row */}
+        <section className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <div className="flex flex-1 gap-2">
             <Input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search your saved videos…"
-              className="pl-9"
+              placeholder="Paste a YouTube URL and press Enter or +"
+              value={single}
+              onChange={(e) => setSingle(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleAddSingle();
+              }}
             />
+            <Button onClick={handleAddSingle} disabled={loading}>
+              <Plus className="h-4 w-4" /> Add
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => setBulkOpen(true)}
+              className="sm:hidden"
+            >
+              <ClipboardPaste className="h-4 w-4" />
+            </Button>
           </div>
-          <div className="inline-flex items-center rounded-md border border-border bg-card p-1">
+          <div className="inline-flex items-center self-end rounded-md border border-border bg-card p-1 sm:self-auto">
             <ViewBtn icon={<LayoutGrid className="h-4 w-4" />} label="Gallery" active={view === "gallery"} onClick={() => setView("gallery")} />
             <ViewBtn icon={<ListIcon className="h-4 w-4" />} label="List" active={view === "list"} onClick={() => setView("list")} />
             <ViewBtn icon={<Rows3 className="h-4 w-4" />} label="Compact" active={view === "compact"} onClick={() => setView("compact")} />
@@ -294,6 +324,35 @@ export default function Dashboard() {
           </div>
         )}
       </main>
+
+      {/* Bulk paste modal */}
+      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+        <DialogContent className="sm:max-w-xl backdrop-blur">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <ClipboardPaste className="h-5 w-5" /> Bulk add videos
+            </DialogTitle>
+            <DialogDescription>
+              Paste multiple YouTube links separated by commas, spaces or new lines.
+            </DialogDescription>
+          </DialogHeader>
+          <Textarea
+            placeholder="https://youtu.be/…, https://youtube.com/watch?v=…"
+            value={bulk}
+            onChange={(e) => setBulk(e.target.value)}
+            rows={6}
+            className="resize-none"
+          />
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" onClick={() => setBulkOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddBulk} disabled={loading || !bulk.trim()}>
+              Import all
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
