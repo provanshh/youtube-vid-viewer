@@ -647,6 +647,13 @@ function CompactRow({
       <span className="hidden truncate text-xs text-muted-foreground sm:block sm:w-40">
         {v.author}
       </span>
+      <button
+        onClick={() => copyLink(v.id)}
+        className="rounded p-1 text-muted-foreground hover:bg-accent"
+        aria-label="Copy link"
+      >
+        <Copy className="h-3.5 w-3.5" />
+      </button>
       <a
         href={v.url}
         target="_blank"
