@@ -50,14 +50,24 @@ export const Route = createFileRoute("/")({
 
 function Landing() {
   const [authOpen, setAuthOpen] = useState<null | "login" | "signup">(null);
+  const [authOpen, setAuthOpen] = useState<null | "login" | "signup">(null);
+  const [activeFeature, setActiveFeature] = useState(0);
 
-
+  useEffect(() => {
     const stored = localStorage.getItem("tubedeck.theme");
     const prefersDark =
       stored === "dark" ||
       (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches);
     document.documentElement.classList.toggle("dark", prefersDark);
   }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setActiveFeature((i) => (i + 1) % FEATURES.length);
+    }, 2600);
+    return () => clearInterval(id);
+  }, []);
+
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-white overflow-x-hidden">
