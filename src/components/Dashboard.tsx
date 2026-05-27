@@ -557,10 +557,10 @@ export default function Dashboard() {
         {/* Player */}
         {activeId && playerEmbedSrc && (
           <Card
-            className="overflow-hidden rounded-2xl p-0 shadow-lg fs:rounded-none fs:bg-black"
+            className="tubedeck-player overflow-hidden rounded-2xl p-0 shadow-lg"
             ref={playerRef as React.Ref<HTMLDivElement>}
           >
-            <div className="flex items-center justify-between gap-2 border-b border-border bg-card/60 px-3 py-2 fs:hidden">
+            <div className="tubedeck-player-bar flex items-center justify-between gap-2 border-b border-border bg-card/60 px-3 py-2">
               <div className="flex min-w-0 items-center gap-2">
                 <p className="truncate text-xs font-medium text-muted-foreground">Now playing</p>
                 <NowPlayingBars />
