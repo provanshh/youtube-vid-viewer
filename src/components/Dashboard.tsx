@@ -431,11 +431,6 @@ export default function Dashboard() {
             </SelectContent>
           </Select>
 
-          {/* count chip */}
-          <span className="inline-flex h-7 items-center rounded-full bg-card px-2.5 text-[11px] font-medium text-muted-foreground shadow-sm">
-            {counts[category]} {CATEGORIES.find((c) => c.value === category)?.label}
-          </span>
-
           {/* Search */}
           <div className="order-last flex w-full items-stretch sm:order-none sm:mx-auto sm:w-auto sm:max-w-xl sm:flex-1">
             <div className="relative flex-1">
@@ -449,12 +444,42 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* Eye filter */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                aria-label="Filter watched"
+                className={`flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium shadow-sm hover:shadow-md ${
+                  eyeFilter === "all"
+                    ? "bg-card"
+                    : eyeFilter === "viewed"
+                      ? "bg-emerald-500/15 text-emerald-600"
+                      : "bg-rose-500/15 text-rose-600"
+                }`}
+              >
+                <Eye className="h-4 w-4" />
+                <span className="hidden sm:inline capitalize">{eyeFilter}</span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-36 rounded-xl">
+              <DropdownMenuLabel className="text-xs">Show</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setEyeFilter("all")} className="cursor-pointer text-xs">All</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setEyeFilter("viewed")} className="cursor-pointer text-xs">Viewed</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setEyeFilter("left")} className="cursor-pointer text-xs">Left</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Sort by channel */}
           <button
-            onClick={() => setBulkOpen(true)}
-            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-foreground px-3 text-xs font-medium text-background shadow-md transition-shadow hover:shadow-lg"
+            onClick={() => setSortByChannel((s) => !s)}
+            aria-label="Sort by channel"
+            title={sortByChannel ? "Sorted by channel" : "Sort by channel"}
+            className={`flex h-8 w-8 items-center justify-center rounded-full shadow-sm hover:shadow-md ${
+              sortByChannel ? "bg-primary text-primary-foreground" : "bg-card"
+            }`}
           >
-            <ClipboardPaste className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Bulk add</span>
+            <ArrowUpDown className="h-4 w-4" />
           </button>
 
           <DropdownMenu>
