@@ -62,8 +62,12 @@ import {
   Settings,
   Download,
   Plus,
+  Eye,
+  ArrowUpDown,
 } from "lucide-react";
 import { toast } from "sonner";
+
+type EyeFilter = "all" | "viewed" | "left";
 
 type PlayerSize = "small" | "full" | "fullscreen";
 type Category = "videos" | "shorts" | "channel" | "posts";
