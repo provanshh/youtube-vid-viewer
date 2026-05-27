@@ -62,8 +62,12 @@ import {
   Settings,
   Download,
   Plus,
+  Eye,
+  ArrowUpDown,
 } from "lucide-react";
 import { toast } from "sonner";
+
+type EyeFilter = "all" | "viewed" | "left";
 
 type PlayerSize = "small" | "full" | "fullscreen";
 type Category = "videos" | "shorts" | "channel" | "posts";
@@ -168,6 +172,8 @@ export default function Dashboard() {
   const [dark, setDark] = useState(false);
   const [category, setCategory] = useState<Category>("videos");
   const [confirmId, setConfirmId] = useState<string | null>(null);
+  const [eyeFilter, setEyeFilter] = useState<EyeFilter>("all");
+  const [sortByChannel, setSortByChannel] = useState(false);
   const playerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -280,19 +286,28 @@ export default function Dashboard() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    const inCat = videos.filter((v) => v.category === category);
-    if (!q) return inCat;
+    let inCat = videos.filter((v) => v.category === category);
+    if (eyeFilter === "viewed") inCat = inCat.filter((v) => v.watched);
+    else if (eyeFilter === "left") inCat = inCat.filter((v) => !v.watched);
     const parsed = parseYouTube(search);
-    return inCat.filter((v) => {
-      if (parsed && v.id === parsed.id) return true;
-      return (
-        v.title.toLowerCase().includes(q) ||
-        v.author.toLowerCase().includes(q) ||
-        v.url.toLowerCase().includes(q) ||
-        v.id.toLowerCase().includes(q)
+    let result = !q
+      ? inCat
+      : inCat.filter((v) => {
+          if (parsed && v.id === parsed.id) return true;
+          return (
+            v.title.toLowerCase().includes(q) ||
+            v.author.toLowerCase().includes(q) ||
+            v.url.toLowerCase().includes(q) ||
+            v.id.toLowerCase().includes(q)
+          );
+        });
+    if (sortByChannel) {
+      result = [...result].sort((a, b) =>
+        a.author.localeCompare(b.author) || a.title.localeCompare(b.title),
       );
-    });
-  }, [videos, search, category]);
+    }
+    return result;
+  }, [videos, search, category, eyeFilter, sortByChannel]);
 
   // If user pastes URL into search of different category, auto-switch
   useEffect(() => {
@@ -302,6 +317,35 @@ export default function Dashboard() {
       if (exists) setCategory(p.category);
     }
   }, [search, videos, category]);
+
+  // Global paste — paste a YouTube URL anywhere and it gets added
+  useEffect(() => {
+    const onPaste = (e: ClipboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target) {
+        const tag = target.tagName;
+        if (tag === "INPUT" || tag === "TEXTAREA" || target.isContentEditable) return;
+      }
+      const text = e.clipboardData?.getData("text") ?? "";
+      if (!text) return;
+      const parts = text.split(/[\s,]+/).map((s) => s.trim()).filter(Boolean);
+      const anyValid = parts.some((p) => parseYouTube(p));
+      if (!anyValid) return;
+      e.preventDefault();
+      addFromInputs(parts);
+    };
+    document.addEventListener("paste", onPaste);
+    return () => document.removeEventListener("paste", onPaste);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [videos]);
+
+  // Scroll to player whenever a new video is played
+  useEffect(() => {
+    if (!activeId) return;
+    requestAnimationFrame(() => {
+      playerRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }, [activeId]);
 
   const enterFullscreen = () => {
     setPlayerSize("fullscreen");
@@ -387,11 +431,6 @@ export default function Dashboard() {
             </SelectContent>
           </Select>
 
-          {/* count chip */}
-          <span className="inline-flex h-7 items-center rounded-full bg-card px-2.5 text-[11px] font-medium text-muted-foreground shadow-sm">
-            {counts[category]} {CATEGORIES.find((c) => c.value === category)?.label}
-          </span>
-
           {/* Search */}
           <div className="order-last flex w-full items-stretch sm:order-none sm:mx-auto sm:w-auto sm:max-w-xl sm:flex-1">
             <div className="relative flex-1">
@@ -405,12 +444,42 @@ export default function Dashboard() {
             </div>
           </div>
 
+          {/* Eye filter */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                aria-label="Filter watched"
+                className={`flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium shadow-sm hover:shadow-md ${
+                  eyeFilter === "all"
+                    ? "bg-card"
+                    : eyeFilter === "viewed"
+                      ? "bg-emerald-500/15 text-emerald-600"
+                      : "bg-rose-500/15 text-rose-600"
+                }`}
+              >
+                <Eye className="h-4 w-4" />
+                <span className="hidden sm:inline capitalize">{eyeFilter}</span>
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-36 rounded-xl">
+              <DropdownMenuLabel className="text-xs">Show</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setEyeFilter("all")} className="cursor-pointer text-xs">All</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setEyeFilter("viewed")} className="cursor-pointer text-xs">Viewed</DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setEyeFilter("left")} className="cursor-pointer text-xs">Left</DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Sort by channel */}
           <button
-            onClick={() => setBulkOpen(true)}
-            className="inline-flex h-8 items-center gap-1.5 rounded-full bg-foreground px-3 text-xs font-medium text-background shadow-md transition-shadow hover:shadow-lg"
+            onClick={() => setSortByChannel((s) => !s)}
+            aria-label="Sort by channel"
+            title={sortByChannel ? "Sorted by channel" : "Sort by channel"}
+            className={`flex h-8 w-8 items-center justify-center rounded-full shadow-sm hover:shadow-md ${
+              sortByChannel ? "bg-primary text-primary-foreground" : "bg-card"
+            }`}
           >
-            <ClipboardPaste className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Bulk add</span>
+            <ArrowUpDown className="h-4 w-4" />
           </button>
 
           <DropdownMenu>
@@ -440,47 +509,62 @@ export default function Dashboard() {
           </DropdownMenu>
         </div>
 
-        {/* Paste bar below nav */}
+        {/* Paste bar + views + bulk add */}
         <div className="border-t border-border/60 bg-card/30">
-          <div className="mx-auto flex max-w-7xl items-center gap-2 px-3 py-1.5 sm:px-4">
-            <Plus className="h-3.5 w-3.5 text-muted-foreground" />
-            <Input
-              value={paste}
-              onChange={(e) => setPaste(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handlePaste();
-              }}
-              placeholder="Paste a YouTube link and hit Enter — auto-sorted into the right category"
-              className="h-7 flex-1 rounded-full border-transparent bg-background/60 px-3 text-xs shadow-none focus-visible:border-border"
-            />
-            <Button
-              size="sm"
-              variant="secondary"
-              className="h-7 rounded-full px-3 text-xs"
-              onClick={handlePaste}
-              disabled={!paste.trim() || loading}
+          <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-3 py-1.5 sm:flex-nowrap sm:px-4">
+            <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 shadow-sm">
+              <ViewBtn icon={<LayoutGrid className="h-3.5 w-3.5" />} label="Gallery" active={view === "gallery"} onClick={() => setView("gallery")} />
+              <ViewBtn icon={<ListIcon className="h-3.5 w-3.5" />} label="List" active={view === "list"} onClick={() => setView("list")} />
+              <ViewBtn icon={<Rows3 className="h-3.5 w-3.5" />} label="Compact" active={view === "compact"} onClick={() => setView("compact")} />
+            </div>
+
+            <div className="flex flex-1 items-center gap-1.5 rounded-full bg-background/60 px-3 shadow-inner ring-1 ring-border/40 focus-within:ring-border">
+              <Plus className="h-3.5 w-3.5 text-muted-foreground" />
+              <Input
+                value={paste}
+                onChange={(e) => setPaste(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handlePaste();
+                }}
+                placeholder="Paste a YouTube link and hit Enter — auto-sorted"
+                className="h-7 flex-1 border-0 bg-transparent px-0 text-xs shadow-none focus-visible:ring-0"
+              />
+              <Button
+                size="sm"
+                variant="secondary"
+                className="h-6 rounded-full px-3 text-[11px]"
+                onClick={handlePaste}
+                disabled={!paste.trim() || loading}
+              >
+                Add
+              </Button>
+            </div>
+
+            <button
+              onClick={() => setBulkOpen(true)}
+              className="inline-flex h-8 items-center gap-1.5 rounded-full bg-foreground px-3 text-xs font-medium text-background shadow-md transition-shadow hover:shadow-lg"
             >
-              Add
-            </Button>
+              <ClipboardPaste className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Bulk add</span>
+            </button>
           </div>
         </div>
       </header>
 
       <main className="mx-auto max-w-7xl space-y-4 px-3 py-4 sm:px-4">
-        {/* View toggle */}
-        <section className="flex items-center justify-end gap-2">
-          <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 shadow-sm">
-            <ViewBtn icon={<LayoutGrid className="h-3.5 w-3.5" />} label="Gallery" active={view === "gallery"} onClick={() => setView("gallery")} />
-            <ViewBtn icon={<ListIcon className="h-3.5 w-3.5" />} label="List" active={view === "list"} onClick={() => setView("list")} />
-            <ViewBtn icon={<Rows3 className="h-3.5 w-3.5" />} label="Compact" active={view === "compact"} onClick={() => setView("compact")} />
-          </div>
-        </section>
+
 
         {/* Player */}
         {activeId && playerEmbedSrc && (
-          <Card className="overflow-hidden rounded-2xl p-0 shadow-lg" ref={playerRef as React.Ref<HTMLDivElement>}>
-            <div className="flex items-center justify-between gap-2 border-b border-border bg-card/60 px-3 py-2">
-              <p className="truncate text-xs font-medium text-muted-foreground">Now playing</p>
+          <Card
+            className="tubedeck-player overflow-hidden rounded-2xl p-0 shadow-lg"
+            ref={playerRef as React.Ref<HTMLDivElement>}
+          >
+            <div className="tubedeck-player-bar flex items-center justify-between gap-2 border-b border-border bg-card/60 px-3 py-2">
+              <div className="flex min-w-0 items-center gap-2">
+                <p className="truncate text-xs font-medium text-muted-foreground">Now playing</p>
+                <NowPlayingBars />
+              </div>
               <div className="flex items-center gap-1">
                 <div className="inline-flex items-center rounded-full border border-border bg-background p-0.5">
                   <PlayerSizeBtn icon={<Minimize2 className="h-3.5 w-3.5" />} label="Small" active={playerSize === "small"} onClick={() => setPlayerSize("small")} />
@@ -509,23 +593,38 @@ export default function Dashboard() {
             <div
               className={
                 playerSize === "small"
-                  ? "mx-auto w-full max-w-md"
-                  : "w-full"
+                  ? "mx-auto w-full max-w-md bg-black"
+                  : "w-full bg-black"
               }
             >
-              <div className="relative w-full bg-black" style={{ aspectRatio: "16 / 9" }}>
-                <iframe
-                  key={activeId}
-                  src={playerEmbedSrc}
-                  title="YouTube player"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  className="absolute inset-0 h-full w-full"
-                />
-              </div>
+              {playerSize === "full" ? (
+                <div className="relative mx-auto w-full" style={{ maxHeight: "calc(100vh - 200px)", aspectRatio: "16 / 9" }}>
+                  <iframe
+                    key={activeId}
+                    src={playerEmbedSrc}
+                    title="YouTube player"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="absolute inset-0 h-full w-full"
+                    style={{ maxHeight: "calc(100vh - 200px)" }}
+                  />
+                </div>
+              ) : (
+                <div className="relative w-full" style={{ aspectRatio: "16 / 9" }}>
+                  <iframe
+                    key={activeId}
+                    src={playerEmbedSrc}
+                    title="YouTube player"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    className="absolute inset-0 h-full w-full"
+                  />
+                </div>
+              )}
             </div>
           </Card>
         )}
+
 
         {/* Results */}
         {filtered.length === 0 ? (
@@ -966,5 +1065,20 @@ function PlayerSizeBtn({
       {icon}
       <span className="hidden sm:inline">{label}</span>
     </button>
+  );
+}
+
+function NowPlayingBars() {
+  return (
+    <span
+      aria-hidden
+      className="inline-flex h-3.5 items-end gap-[2px]"
+      title="Playing"
+    >
+      <span className="block w-[2px] rounded-sm bg-primary tubedeck-bar tubedeck-bar-1" />
+      <span className="block w-[2px] rounded-sm bg-primary tubedeck-bar tubedeck-bar-2" />
+      <span className="block w-[2px] rounded-sm bg-primary tubedeck-bar tubedeck-bar-3" />
+      <span className="block w-[2px] rounded-sm bg-primary tubedeck-bar tubedeck-bar-4" />
+    </span>
   );
 }
