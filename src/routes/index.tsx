@@ -10,9 +10,21 @@ import {
   Rocket,
   ChevronDown,
   Download,
+  Monitor,
+  Smartphone,
+  Library,
+  Eye,
+  ClipboardCopy,
+  Clipboard,
+  LayoutGrid,
+  Lock,
+  Palette,
+  type LucideIcon,
 } from "lucide-react";
 import linkeeLogo from "@/assets/linkee-logo.png";
 import fireGif from "@/assets/fire.gif";
+import CurvedLoop from "@/components/CurvedLoop";
+
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -107,34 +119,38 @@ function Landing() {
           </a>
         </div>
 
-        {/* Hero mock */}
+        {/* Curved marquee */}
         <div
-          className="mx-auto mt-20 max-w-4xl animate-fade-in"
+          className="mt-10 animate-fade-in"
+          style={{ animationDelay: "0.35s", animationFillMode: "both" }}
+        >
+          <CurvedLoop
+            marqueeText="Paste ✦ Watch ✦ Organize ✦ Export ✦ Linkee ✦"
+            speed={1.5}
+            curveAmount={300}
+            className="fill-white/80"
+          />
+        </div>
+
+        {/* Hero video */}
+        <div
+          className="mx-auto mt-10 max-w-4xl animate-fade-in"
           style={{ animationDelay: "0.4s", animationFillMode: "both" }}
         >
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-2 shadow-2xl backdrop-blur">
-            <div className="rounded-xl bg-gradient-to-br from-white/[0.04] via-transparent to-white/[0.04] p-10">
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {[
-                  { l: "Videos", n: 42 },
-                  { l: "Shorts", n: 18 },
-                  { l: "Channels", n: 7 },
-                  { l: "Posts", n: 3 },
-                ].map((c, idx) => (
-                  <div
-                    key={c.l}
-                    className="rounded-xl border border-white/10 bg-black/40 p-5 text-left transition-transform hover:-translate-y-1"
-                    style={{ animation: `fade-in 0.6s ease-out ${0.5 + idx * 0.1}s both` }}
-                  >
-                    <div className="text-3xl font-bold text-white">{c.n}</div>
-                    <div className="mt-1 text-xs uppercase tracking-wider text-white/50">{c.l}</div>
-                  </div>
-                ))}
-              </div>
+            <div className="aspect-video overflow-hidden rounded-xl bg-black">
+              <iframe
+                className="h-full w-full"
+                src="https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0&modestbranding=1"
+                title="Linkee demo"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
             </div>
           </div>
         </div>
       </section>
+
 
       {/* Features */}
       <section id="features" className="mx-auto max-w-6xl px-5 py-24">
@@ -146,20 +162,36 @@ function Landing() {
             Every tool you need to keep your watchlist sane.
           </p>
         </div>
-        <div className="mt-14 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {FEATURES.map((f, i) => (
-            <div
-              key={f.title}
-              className="group rounded-2xl border border-white/10 bg-white/[0.03] p-6 transition-all hover:-translate-y-1 hover:bg-white/[0.06]"
-              style={{ animation: `fade-in 0.5s ease-out ${i * 0.05}s both` }}
-            >
-              <div className="text-2xl">{f.emoji}</div>
-              <h3 className="mt-4 text-base font-semibold text-white">{f.title}</h3>
-              <p className="mt-1.5 text-sm text-white/60">{f.desc}</p>
-            </div>
-          ))}
+        <div className="mt-14 linkee-marquee-mask overflow-hidden">
+          <div className="linkee-marquee-track flex w-max gap-5">
+            {[...FEATURES, ...FEATURES].map((f, i) => {
+              const Icon = f.icon;
+              const isCenter = i % FEATURES.length === Math.floor(FEATURES.length / 2);
+              return (
+                <div
+                  key={i}
+                  className={`w-72 shrink-0 rounded-2xl border p-6 transition-all ${
+                    isCenter
+                      ? "-translate-y-4 border-white/25 bg-white/[0.08] shadow-2xl shadow-white/5"
+                      : "border-white/10 bg-white/[0.03]"
+                  }`}
+                >
+                  <div
+                    className={`inline-flex h-10 w-10 items-center justify-center rounded-xl ${
+                      isCenter ? "bg-white text-black" : "bg-white/10 text-white"
+                    }`}
+                  >
+                    <Icon className="h-5 w-5" />
+                  </div>
+                  <h3 className="mt-4 text-base font-semibold text-white">{f.title}</h3>
+                  <p className="mt-1.5 text-sm text-white/60">{f.desc}</p>
+                </div>
+              );
+            })}
+          </div>
         </div>
       </section>
+
 
       {/* Pricing */}
       <section id="pricing" className="mx-auto max-w-6xl px-5 py-24">
@@ -322,17 +354,18 @@ function FaqItem({ q, a, defaultOpen }: { q: string; a: string; defaultOpen?: bo
   );
 }
 
-const FEATURES = [
-  { emoji: "🎬", title: "Theatre, small or fullscreen", desc: "Three player modes. Switch instantly without losing your place." },
-  { emoji: "📱", title: "Shorts done right", desc: "Vertical player with next/previous — like the real app, minus the noise." },
-  { emoji: "📚", title: "Videos, Shorts, Channels, Posts", desc: "One place for everything you save. Auto-categorized when you paste." },
-  { emoji: "👁️", title: "Filter what's left", desc: "Hide watched, see only what's left, or sort by channel in one click." },
-  { emoji: "📋", title: "Copy & export", desc: "Copy every link grouped by category, or export your whole library to PDF." },
-  { emoji: "⚡", title: "Paste anywhere", desc: "Just hit Ctrl+V anywhere in the app — Linkee figures the rest out." },
-  { emoji: "🪟", title: "Three views", desc: "Gallery, list and compact — match how you want to scan your library." },
-  { emoji: "🔒", title: "Local-first", desc: "Your library lives in your browser. No account, no tracking, no waiting." },
-  { emoji: "✨", title: "Beautiful, dark or light", desc: "A calm interface that gets out of your way. Switches with your system." },
+const FEATURES: { icon: LucideIcon; title: string; desc: string }[] = [
+  { icon: Monitor, title: "Theatre, small or fullscreen", desc: "Three player modes. Switch instantly without losing your place." },
+  { icon: Smartphone, title: "Shorts done right", desc: "Vertical player with next/previous — like the real app, minus the noise." },
+  { icon: Library, title: "Videos, Shorts, Channels, Posts", desc: "One place for everything you save. Auto-categorized when you paste." },
+  { icon: Eye, title: "Filter what's left", desc: "Hide watched, see only what's left, or sort by channel in one click." },
+  { icon: ClipboardCopy, title: "Copy & export", desc: "Copy every link grouped by category, or export your whole library to PDF." },
+  { icon: Clipboard, title: "Paste anywhere", desc: "Just hit Ctrl+V anywhere in the app — Linkee figures the rest out." },
+  { icon: LayoutGrid, title: "Three views", desc: "Gallery, list and compact — match how you want to scan your library." },
+  { icon: Lock, title: "Local-first", desc: "Your library lives in your browser. No account, no tracking, no waiting." },
+  { icon: Palette, title: "Beautiful, dark or light", desc: "A calm interface that gets out of your way. Switches with your system." },
 ];
+
 
 const PLANS = [
   {

@@ -168,3 +168,38 @@
 .animate-fade-in { animation: fade-in 0.6s ease-out both; }
 .hover-scale { transition: transform 0.3s ease; }
 .hover-scale:hover { transform: scale(1.02); }
+
+/* CurvedLoop component */
+.curved-loop-jacket {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  transform: translateZ(0);
+}
+.curved-loop-svg {
+  user-select: none;
+  -webkit-user-select: none;
+  width: 100%;
+  aspect-ratio: 100 / 12;
+  overflow: visible;
+  display: block;
+  font-size: 6rem;
+  fill: #ffffff;
+  font-weight: 700;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+/* Marquee for features row */
+@keyframes linkee-marquee {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+.linkee-marquee-track {
+  animation: linkee-marquee 40s linear infinite;
+}
+.linkee-marquee-mask {
+  mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+  -webkit-mask-image: linear-gradient(to right, transparent, black 8%, black 92%, transparent);
+}
