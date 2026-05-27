@@ -1,7 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useEffect, useRef, useState } from "react";
 import {
-  Play,
   Sparkles,
   Check,
   ArrowRight,
@@ -9,7 +8,6 @@ import {
   Crown,
   Rocket,
   ChevronDown,
-  Download,
   Monitor,
   Smartphone,
   Library,
@@ -19,11 +17,16 @@ import {
   LayoutGrid,
   Lock,
   Palette,
+  X,
+  Mail,
+  KeyRound,
+  User as UserIcon,
   type LucideIcon,
 } from "lucide-react";
 import linkeeLogo from "@/assets/linkee-logo.png";
 import fireGif from "@/assets/fire.gif";
 import CurvedLoop from "@/components/CurvedLoop";
+
 
 
 export const Route = createFileRoute("/")({
