@@ -531,6 +531,13 @@ function GalleryCard({
             <span className="truncate">{v.author}</span>
           </label>
           <div className="flex items-center gap-0.5">
+            <button
+              onClick={() => copyLink(v.id)}
+              className="rounded p-1 hover:bg-accent"
+              aria-label="Copy link"
+            >
+              <Copy className="h-3.5 w-3.5" />
+            </button>
             <a
               href={v.url}
               target="_blank"
