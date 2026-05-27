@@ -525,11 +525,22 @@ export default function Dashboard() {
                 {dark ? "Light theme" : "Dark theme"}
               </DropdownMenuItem>
               <DropdownMenuItem
+                onClick={copyAllLinks}
+                className="cursor-pointer text-xs"
+                disabled={videos.length === 0}
+              >
+                <Copy className="h-4 w-4" /> Copy links
+              </DropdownMenuItem>
+              <DropdownMenuItem
                 onClick={downloadPdf}
                 className="cursor-pointer text-xs"
                 disabled={videos.length === 0}
               >
                 <Download className="h-4 w-4" /> Download PDF
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setProfileOpen(true)} className="cursor-pointer text-xs">
+                <User className="h-4 w-4" /> Profile
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
