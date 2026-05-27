@@ -119,34 +119,38 @@ function Landing() {
           </a>
         </div>
 
-        {/* Hero mock */}
+        {/* Curved marquee */}
         <div
-          className="mx-auto mt-20 max-w-4xl animate-fade-in"
+          className="mt-10 animate-fade-in"
+          style={{ animationDelay: "0.35s", animationFillMode: "both" }}
+        >
+          <CurvedLoop
+            marqueeText="Paste ✦ Watch ✦ Organize ✦ Export ✦ Linkee ✦"
+            speed={1.5}
+            curveAmount={300}
+            className="fill-white/80"
+          />
+        </div>
+
+        {/* Hero video */}
+        <div
+          className="mx-auto mt-10 max-w-4xl animate-fade-in"
           style={{ animationDelay: "0.4s", animationFillMode: "both" }}
         >
           <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-2 shadow-2xl backdrop-blur">
-            <div className="rounded-xl bg-gradient-to-br from-white/[0.04] via-transparent to-white/[0.04] p-10">
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                {[
-                  { l: "Videos", n: 42 },
-                  { l: "Shorts", n: 18 },
-                  { l: "Channels", n: 7 },
-                  { l: "Posts", n: 3 },
-                ].map((c, idx) => (
-                  <div
-                    key={c.l}
-                    className="rounded-xl border border-white/10 bg-black/40 p-5 text-left transition-transform hover:-translate-y-1"
-                    style={{ animation: `fade-in 0.6s ease-out ${0.5 + idx * 0.1}s both` }}
-                  >
-                    <div className="text-3xl font-bold text-white">{c.n}</div>
-                    <div className="mt-1 text-xs uppercase tracking-wider text-white/50">{c.l}</div>
-                  </div>
-                ))}
-              </div>
+            <div className="aspect-video overflow-hidden rounded-xl bg-black">
+              <iframe
+                className="h-full w-full"
+                src="https://www.youtube.com/embed/dQw4w9WgXcQ?rel=0&modestbranding=1"
+                title="Linkee demo"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
             </div>
           </div>
         </div>
       </section>
+
 
       {/* Features */}
       <section id="features" className="mx-auto max-w-6xl px-5 py-24">
