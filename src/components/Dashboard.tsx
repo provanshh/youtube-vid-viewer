@@ -309,23 +309,60 @@ export default function Dashboard() {
         {/* Player */}
         {activeId && (
           <Card className="overflow-hidden rounded-2xl p-0 shadow-lg">
-            <div className="relative w-full" style={{ aspectRatio: "16 / 9" }}>
-              <iframe
-                key={activeId}
-                src={`https://www.youtube.com/embed/${activeId}?autoplay=1`}
-                title="YouTube player"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                className="absolute inset-0 h-full w-full"
-              />
-            </div>
-            <div className="flex items-center justify-between p-3">
-              <p className="truncate text-sm text-muted-foreground">
+            <div className="flex items-center justify-between gap-2 border-b border-border bg-card/60 px-3 py-2">
+              <p className="truncate text-xs font-medium text-muted-foreground">
                 Now playing
               </p>
-              <Button variant="ghost" size="sm" onClick={() => setActiveId(null)}>
-                Close
-              </Button>
+              <div className="flex items-center gap-1">
+                <div className="inline-flex items-center rounded-full border border-border bg-background p-0.5">
+                  <PlayerSizeBtn icon={<Minimize2 className="h-3.5 w-3.5" />} label="Small" active={playerSize === "small"} onClick={() => setPlayerSize("small")} />
+                  <PlayerSizeBtn icon={<Monitor className="h-3.5 w-3.5" />} label="Default" active={playerSize === "default"} onClick={() => setPlayerSize("default")} />
+                  <PlayerSizeBtn icon={<Maximize2 className="h-3.5 w-3.5" />} label="Theatre" active={playerSize === "theatre"} onClick={() => setPlayerSize("theatre")} />
+                </div>
+                <button
+                  onClick={() => copyLink(activeId)}
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-accent"
+                  aria-label="Copy link"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </button>
+                <a
+                  href={`https://www.youtube.com/watch?v=${activeId}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-accent"
+                  aria-label="Open on YouTube"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                </a>
+                <button
+                  onClick={() => setActiveId(null)}
+                  className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                  aria-label="Close player"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+            <div
+              className={
+                playerSize === "small"
+                  ? "mx-auto w-full max-w-md"
+                  : playerSize === "theatre"
+                    ? "mx-[calc(50%-50vw)] w-screen"
+                    : "w-full"
+              }
+            >
+              <div className="relative w-full" style={{ aspectRatio: "16 / 9" }}>
+                <iframe
+                  key={activeId}
+                  src={`https://www.youtube.com/embed/${activeId}?autoplay=1`}
+                  title="YouTube player"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  className="absolute inset-0 h-full w-full"
+                />
+              </div>
             </div>
           </Card>
         )}
