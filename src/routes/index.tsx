@@ -49,7 +49,9 @@ export const Route = createFileRoute("/")({
 });
 
 function Landing() {
-  useEffect(() => {
+  const [authOpen, setAuthOpen] = useState<null | "login" | "signup">(null);
+
+
     const stored = localStorage.getItem("tubedeck.theme");
     const prefersDark =
       stored === "dark" ||
