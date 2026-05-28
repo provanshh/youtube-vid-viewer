@@ -37,7 +37,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "@tanstack/react-router";
-import { Home } from "lucide-react";
+import linkeeLogo from "@/assets/linkee-logo.png";
 import {
   LayoutDashboard,
   List as ListIcon,
@@ -182,6 +182,15 @@ export default function Dashboard() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [alwaysShowControls, setAlwaysShowControls] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    const v = localStorage.getItem("tubedeck.alwaysShowControls");
+    return v === null ? true : v === "true";
+  });
+
+  useEffect(() => {
+    try { localStorage.setItem("tubedeck.alwaysShowControls", String(alwaysShowControls)); } catch { /* */ }
+  }, [alwaysShowControls]);
   const playerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
@@ -474,10 +483,10 @@ export default function Dashboard() {
             </button>
             <Link
               to="/"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm hover:shadow-md transition-all hover:scale-105"
+              className="inline-flex h-9 items-center justify-center rounded-full hover:scale-105 transition-transform"
               aria-label="Home"
             >
-              <Home className="h-4 w-4" />
+              <img src={linkeeLogo} alt="Linkee" className="h-7 w-auto" />
             </Link>
             <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 shadow-sm">
               <ViewBtn icon={<LayoutDashboard className="h-3.5 w-3.5" />} label="Gallery" active={view === "gallery"} onClick={() => setView("gallery")} />
@@ -488,13 +497,13 @@ export default function Dashboard() {
 
           {/* Center: Search */}
           <div className="flex flex-1 max-w-xs md:max-w-md mx-2">
-            <div className="relative w-full">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <div className="relative w-full group">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search titles, authors..."
-                className="h-8 w-full rounded-full border-border bg-card pl-8 pr-3 text-xs shadow-sm focus-visible:shadow-md"
+                className="h-9 w-full rounded-full border-2 border-border bg-card pl-10 pr-3 text-sm font-medium shadow-md ring-1 ring-primary/10 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30 transition-all"
               />
             </div>
           </div>
@@ -539,6 +548,14 @@ export default function Dashboard() {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={downloadPdf} className="cursor-pointer text-xs" disabled={videos.length === 0}>
                   <Download className="h-4 w-4" /> Download PDF
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={(e) => { e.preventDefault(); setAlwaysShowControls((s) => !s); }}
+                  className="cursor-pointer text-xs"
+                >
+                  {alwaysShowControls ? <Eye className="h-4 w-4" /> : <Eye className="h-4 w-4 opacity-50" />}
+                  {alwaysShowControls ? "Controls: always shown" : "Controls: on hover"}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setProfileOpen(true)} className="cursor-pointer text-xs">
@@ -885,6 +902,7 @@ export default function Dashboard() {
                   onPlay={() => setActiveId(`${v.category}:${v.id}`)}
                   onRemove={() => setConfirmId(`${v.category}:${v.id}`)}
                   onToggleWatched={() => toggleWatched(`${v.category}:${v.id}`)}
+                  alwaysShowControls={alwaysShowControls}
                 />
               ))}
             </div>
@@ -1070,15 +1088,16 @@ function ViewBtn({
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-all ${
+      className={`view-btn inline-flex items-center rounded-full px-2 py-1 text-xs font-medium transition-all ${
         active
           ? "bg-primary text-primary-foreground shadow-md"
           : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
       }`}
       aria-pressed={active}
+      title={label}
     >
       {icon}
-      <span className="hidden sm:inline">{label}</span>
+      <span className="view-btn-label">{label}</span>
     </button>
   );
 }
@@ -1116,18 +1135,22 @@ function GalleryCard({
   onPlay,
   onRemove,
   onToggleWatched,
+  alwaysShowControls,
 }: {
   v: Video;
   onPlay: () => void;
   onRemove: () => void;
   onToggleWatched: () => void;
+  alwaysShowControls: boolean;
 }) {
   const playable = v.category === "videos" || v.category === "shorts";
+  const watchedRing = v.watched ? "ring-2 ring-emerald-500/70" : "";
   return (
-    <Card className={`group overflow-hidden rounded-2xl p-0 transition-all hover:-translate-y-0.5 hover:shadow-lg ${watchedBorder(v.watched)}`}>
+    <div className="gallery-card group flex flex-col gap-2">
+      {/* Thumbnail in its own rounded card */}
       <button
         onClick={playable ? onPlay : () => window.open(v.url, "_blank")}
-        className="relative block w-full overflow-hidden"
+        className={`relative block w-full overflow-hidden rounded-2xl bg-muted transition-transform hover:-translate-y-0.5 hover:shadow-lg ${watchedRing}`}
         style={{ aspectRatio: "16 / 9" }}
       >
         <ThumbOrFallback v={v} />
@@ -1139,15 +1162,15 @@ function GalleryCard({
           </span>
         )}
       </button>
-      <div className="p-2.5">
-        <p className="line-clamp-2 h-8 text-xs font-medium leading-4">{v.title}</p>
-        <div className="mt-2 border-t border-border/40" />
-        <div className="mt-1.5 flex items-center justify-between gap-1 text-[11px] text-muted-foreground">
+      {/* Title + author + controls — outside the thumbnail boundary, no card border */}
+      <div className="px-1">
+        <p className="line-clamp-2 text-[13px] font-semibold leading-snug text-foreground">{v.title}</p>
+        <div className="mt-1 flex items-center justify-between gap-1 text-[11px] text-muted-foreground">
           <label className="flex min-w-0 flex-1 items-center gap-1.5 cursor-pointer">
             <Checkbox checked={v.watched} onCheckedChange={onToggleWatched} className="h-3.5 w-3.5" />
             <span className="truncate">{v.author}</span>
           </label>
-          <div className="flex items-center gap-0.5">
+          <div className={`flex items-center gap-0.5 ${alwaysShowControls ? "" : "gallery-card-controls-hover"}`}>
             <CopyButton url={v.url} className="rounded p-1 hover:bg-accent" />
             <a href={v.url} target="_blank" rel="noreferrer" className="rounded p-1 hover:bg-accent" aria-label="Open">
               <ExternalLink className="h-3.5 w-3.5" />
@@ -1158,7 +1181,7 @@ function GalleryCard({
           </div>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }
 

@@ -63,14 +63,14 @@
 
 :root {
   --radius: 0.625rem;
-  --background: oklch(0.975 0.015 285);
-  --foreground: oklch(0.129 0.042 264.695);
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
+  --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.208 0.042 265.755);
-  --primary-foreground: oklch(0.984 0.003 247.858);
+  --popover-foreground: oklch(0.145 0 0);
+  --primary: oklch(0.585 0.232 27.5);
+  --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.97 0.02 285);
   --secondary-foreground: oklch(0.208 0.042 265.755);
   --muted: oklch(0.968 0.007 247.896);
@@ -104,8 +104,8 @@
   --card-foreground: oklch(0.984 0.003 247.858);
   --popover: oklch(0.208 0.042 265.755);
   --popover-foreground: oklch(0.984 0.003 247.858);
-  --primary: oklch(0.929 0.013 255.508);
-  --primary-foreground: oklch(0.208 0.042 265.755);
+  --primary: oklch(0.625 0.235 27.5);
+  --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.279 0.041 260.031);
   --secondary-foreground: oklch(0.984 0.003 247.858);
   --muted: oklch(0.279 0.041 260.031);
@@ -215,4 +215,35 @@
 .linkee-carousel-track {
   transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
   will-change: transform;
+}
+
+/* View button hover expand label */
+.view-btn-label {
+  display: inline-block;
+  max-width: 0;
+  opacity: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: max-width 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease, margin-left 0.3s ease;
+  margin-left: 0;
+}
+.view-btn:hover .view-btn-label,
+.view-btn[aria-pressed="true"] .view-btn-label {
+  max-width: 100px;
+  opacity: 1;
+  margin-left: 4px;
+}
+
+/* Gallery card hover controls */
+.gallery-card-controls-hover {
+  opacity: 0;
+  transform: translateY(2px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+.gallery-card:hover .gallery-card-controls-hover,
+.gallery-card:focus-within .gallery-card-controls-hover {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
 }
