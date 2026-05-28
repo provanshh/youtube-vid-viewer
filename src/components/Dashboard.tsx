@@ -488,13 +488,13 @@ export default function Dashboard() {
 
           {/* Center: Search */}
           <div className="flex flex-1 max-w-xs md:max-w-md mx-2">
-            <div className="relative w-full">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <div className="relative w-full group">
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-primary" />
               <Input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search titles, authors..."
-                className="h-8 w-full rounded-full border-border bg-card pl-8 pr-3 text-xs shadow-sm focus-visible:shadow-md"
+                className="h-9 w-full rounded-full border-2 border-border bg-card pl-10 pr-3 text-sm font-medium shadow-md ring-1 ring-primary/10 focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/30 transition-all"
               />
             </div>
           </div>
