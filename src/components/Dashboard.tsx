@@ -37,7 +37,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "@tanstack/react-router";
-import { Home } from "lucide-react";
+import linkeeLogo from "@/assets/linkee-logo.png";
 import {
   LayoutDashboard,
   List as ListIcon,
