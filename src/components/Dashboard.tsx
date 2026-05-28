@@ -608,79 +608,102 @@ export default function Dashboard() {
       <div className="flex flex-1 min-h-0 overflow-hidden">
 
         {/* Slim Icon Sidebar */}
-        <aside className="hidden md:flex w-[72px] shrink-0 flex-col items-center justify-between border-r border-black/10 dark:border-white/10 bg-card/30 py-1.5 h-full overflow-hidden">
+        <aside className="hidden md:flex w-[76px] shrink-0 flex-col items-center justify-between border-r border-border bg-card/40 py-2 h-full overflow-hidden">
           {/* Top: Category icons */}
-          <div className="flex flex-col items-center gap-0.5">
+          <div className="flex flex-col items-center gap-1">
             {CATEGORIES.map((c) => {
               const isActive = category === c.value;
               return (
                 <button
                   key={c.value}
                   onClick={() => setCategory(c.value)}
-                  className={`flex flex-col items-center justify-center w-[64px] h-[58px] rounded-xl transition-all duration-200 ${
+                  className={`group relative flex flex-col items-center justify-center w-[64px] h-[60px] rounded-xl transition-all duration-200 ${
                     isActive
-                      ? "text-foreground font-bold bg-background shadow-md border border-border/80 scale-[1.04]"
-                      : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground hover:scale-[1.02] hover:shadow-sm"
+                      ? "bg-primary text-primary-foreground shadow-md shadow-primary/20"
+                      : "text-muted-foreground hover:bg-accent hover:text-foreground"
                   }`}
                   aria-label={c.label}
                 >
+                  {isActive && (
+                    <span className="absolute left-0 top-1/2 -translate-y-1/2 h-6 w-[3px] rounded-r-full bg-primary-foreground/80" />
+                  )}
                   <div className="relative flex items-center justify-center">
                     {c.icon}
-                    <span className={`absolute -top-1.5 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full text-[9px] font-bold leading-none px-1 shadow-[0_1px_3px_rgba(0,0,0,0.15)] ${
-                      isActive ? "bg-red-600 text-white" : "bg-red-500 text-white"
+                    <span className={`absolute -top-1.5 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full text-[9px] font-bold leading-none px-1 shadow-sm ${
+                      isActive ? "bg-primary-foreground text-primary" : "bg-red-500 text-white"
                     }`}>{counts[c.value] ?? 0}</span>
                   </div>
-                  <span className="text-[10px] mt-1 tracking-wide leading-none">{c.label}</span>
+                  <span className="text-[10px] mt-1 font-medium tracking-wide leading-none">{c.label}</span>
                 </button>
               );
             })}
           </div>
 
           {/* Bottom: Filter & Sort icons */}
-          <div className="flex flex-col items-center gap-0.5 border-t border-black/10 dark:border-white/10 pt-2">
-            {/* All / Viewed / Left */}
-            {(["all", "viewed", "left"] as EyeFilter[]).map((filter) => {
-              const icons: Record<EyeFilter, React.ReactNode> = {
-                all: <Eye className="h-4 w-4" />,
-                viewed: <Check className="h-4 w-4" />,
-                left: <Play className="h-4 w-4" />,
-              };
-              const labels: Record<EyeFilter, string> = { all: "All", viewed: "Viewed", left: "Left" };
-              const isActive = eyeFilter === filter;
-              return (
-                <button
-                  key={filter}
-                  onClick={() => setEyeFilter(filter)}
-                  className={`flex flex-col items-center justify-center w-[64px] h-[58px] rounded-xl transition-all duration-200 ${
-                    isActive
-                      ? "text-foreground font-bold bg-background shadow-md border border-border/80 scale-[1.04]"
-                      : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground hover:scale-[1.02] hover:shadow-sm"
-                  }`}
-                  aria-label={labels[filter]}
-                >
-                  {icons[filter]}
-                  <span className="text-[10px] mt-1 tracking-wide leading-none">{labels[filter]}</span>
-                </button>
-              );
-            })}
+          <div className="flex flex-col items-center gap-1">
+            {/* Filter group */}
+            <div className="flex flex-col items-center gap-1 border-t border-border pt-2">
+              {(["all", "viewed", "left"] as EyeFilter[]).map((filter) => {
+                const icons: Record<EyeFilter, React.ReactNode> = {
+                  all: <Eye className="h-4 w-4" />,
+                  viewed: <Check className="h-4 w-4" />,
+                  left: <Play className="h-4 w-4" />,
+                };
+                const labels: Record<EyeFilter, string> = { all: "All", viewed: "Viewed", left: "Left" };
+                // Distinct accent colors per filter
+                const activeStyles: Record<EyeFilter, string> = {
+                  all: "bg-sky-500 text-white shadow-md shadow-sky-500/30",
+                  viewed: "bg-emerald-500 text-white shadow-md shadow-emerald-500/30",
+                  left: "bg-amber-500 text-white shadow-md shadow-amber-500/30",
+                };
+                const inactiveText: Record<EyeFilter, string> = {
+                  all: "hover:text-sky-500",
+                  viewed: "hover:text-emerald-500",
+                  left: "hover:text-amber-500",
+                };
+                const isActive = eyeFilter === filter;
+                return (
+                  <button
+                    key={filter}
+                    onClick={() => setEyeFilter(filter)}
+                    className={`relative flex flex-col items-center justify-center w-[64px] h-[56px] rounded-xl transition-all duration-200 ${
+                      isActive
+                        ? activeStyles[filter]
+                        : `text-muted-foreground hover:bg-accent ${inactiveText[filter]}`
+                    }`}
+                    aria-label={labels[filter]}
+                  >
+                    {icons[filter]}
+                    <span className="text-[10px] mt-1 font-medium tracking-wide leading-none">{labels[filter]}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Separator above Sort */}
+            <div className="my-1 h-px w-8 bg-border" />
+
             {/* Sort */}
             <button
               onClick={() => setSortByChannel((s) => !s)}
-              className={`flex flex-col items-center justify-center w-[64px] h-[58px] rounded-xl transition-all duration-200 ${
+              className={`relative flex flex-col items-center justify-center w-[64px] h-[56px] rounded-xl transition-all duration-200 ${
                 sortByChannel
-                  ? "text-foreground font-bold bg-background shadow-md border border-border/80 scale-[1.04]"
-                  : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground hover:scale-[1.02] hover:shadow-sm"
+                  ? "bg-violet-500 text-white shadow-md shadow-violet-500/30"
+                  : "text-muted-foreground hover:bg-accent hover:text-violet-500"
               }`}
               aria-label="Sort by channel"
             >
               <div className="relative">
                 <ArrowUpDown className="h-4 w-4" />
-                {sortByChannel && <span className="absolute -top-1 -right-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500" />}
+                <span className={`absolute -top-1 -right-1.5 h-1.5 w-1.5 rounded-full transition-all ${
+                  sortByChannel ? "bg-white shadow-[0_0_6px_rgba(255,255,255,0.8)]" : "bg-violet-500/60"
+                }`} />
               </div>
-              <span className="text-[10px] mt-1 tracking-wide leading-none">Group</span>
+              <span className="text-[10px] mt-1 font-medium tracking-wide leading-none">Group</span>
             </button>
           </div>
         </aside>
+
 
         {/* Main Content Pane */}
         <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
