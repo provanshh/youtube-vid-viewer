@@ -56,7 +56,6 @@ import {
   FileText,
   Copy,
   Check,
-  Minimize2,
   Maximize2,
   Monitor,
   X,
@@ -78,7 +77,7 @@ import React from "react";
 
 type EyeFilter = "all" | "viewed" | "left";
 
-type PlayerSize = "small" | "full" | "fullscreen";
+type PlayerSize = "full" | "fullscreen";
 type Category = "videos" | "shorts" | "channel" | "posts";
 type ViewMode = "gallery" | "list" | "compact" | "tile";
 
@@ -183,6 +182,7 @@ export function Dashboard() {
   const alwaysShowControls = true;
   const playerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+ 
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -224,7 +224,7 @@ export function Dashboard() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [copyAllLinks, downloadPdf, toggleDark]);
+  }, [videos, dark]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -261,7 +261,7 @@ export function Dashboard() {
     const stored = localStorage.getItem("tubedeck.theme");
     const prefersDark =
       stored === "dark" ||
-      (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches);
+      !stored;
     setDark(prefersDark);
     document.documentElement.classList.toggle("dark", prefersDark);
   }, []);
@@ -546,7 +546,7 @@ export function Dashboard() {
     }
   }, [category, activeId, videos]);
 
-  const isSplit = !!activeId && playerSize === "small";
+  const isSplit = false;
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background text-foreground">
@@ -821,17 +821,17 @@ export function Dashboard() {
 
         {/* Main Content Pane */}
         <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
-          <main className={`mx-auto w-full max-w-7xl px-3 py-4 sm:px-4 ${isSplit ? "flex flex-col md:flex-row gap-4 items-start" : "space-y-4"}`}>
+          <main className={`mx-auto w-full ${activeId ? "max-w-none" : "max-w-7xl"} px-3 py-4 sm:px-4 ${isSplit ? "flex flex-col md:flex-row gap-4 items-start" : "space-y-4"}`}>
             {/* Player */}
             {activeId && playerEmbedSrc && (
-              <div className={playerSize === "small" ? "w-full md:w-[52%] lg:w-[45%] xl:w-[38%] md:sticky md:top-4 shrink-0" : "w-full"}>
+              <div className="w-full -mx-3 sm:-mx-4 -mt-4 sm:-mt-4">
                 <Card
-                  className="tubedeck-player overflow-hidden rounded-2xl p-0 tubedeck-player-border w-full"
+                  className="tubedeck-player overflow-hidden rounded-none p-0 tubedeck-player-border w-full"
                   ref={playerRef as React.Ref<HTMLDivElement>}
                 >
-                <div className="tubedeck-player-bar flex items-center justify-between gap-2 border-b border-border bg-card/60 px-3 py-2">
+                <div className="tubedeck-player-bar flex items-center justify-between gap-2 bg-card/60 px-3 py-2">
                   <div className="flex min-w-0 items-center gap-2">
-                    <p className={`truncate text-xs font-medium text-muted-foreground ${playerSize === "small" ? "hidden" : ""}`}>Now playing</p>
+                    <p className="truncate text-xs font-medium text-muted-foreground">Now playing</p>
                     <NowPlayingBars />
                   </div>
                   <div className="flex items-center gap-1">
@@ -861,7 +861,6 @@ export function Dashboard() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                     <div className="inline-flex items-center rounded-full border border-border bg-background p-0.5">
-                      <PlayerSizeBtn icon={<Minimize2 className="h-3.5 w-3.5" />} label="Small" active={playerSize === "small"} onClick={() => setPlayerSize("small")} />
                       <PlayerSizeBtn icon={<Monitor className="h-3.5 w-3.5" />} label="Full width" active={playerSize === "full"} onClick={() => setPlayerSize("full")} />
                       <PlayerSizeBtn icon={<Maximize2 className="h-3.5 w-3.5" />} label="Full screen" active={playerSize === "fullscreen"} onClick={enterFullscreen} />
                     </div>
@@ -1141,30 +1140,27 @@ export function Dashboard() {
             </DialogContent>
           </Dialog>
           <Dialog open={shortcutsOpen} onOpenChange={setShortcutsOpen}>
-            <DialogContent className="sm:max-w-lg">
+              <DialogContent className="sm:max-w-lg my-8 max-h-[calc(100vh-6rem)] overflow-auto">
               <DialogHeader>
                 <DialogTitle>Keyboard shortcuts</DialogTitle>
                 <DialogDescription>Quick keys for fast navigation and actions.</DialogDescription>
               </DialogHeader>
-              <div className="grid gap-2 py-2">
-                <div className="flex justify-between"><strong>+</strong><span>Focus add link bar</span></div>
-                <div className="flex justify-between"><strong>1</strong><span>Videos</span></div>
-                <div className="flex justify-between"><strong>2</strong><span>Shorts</span></div>
-                <div className="flex justify-between"><strong>3</strong><span>Channels</span></div>
-                <div className="flex justify-between"><strong>4</strong><span>Posts</span></div>
-                <div className="flex justify-between"><strong>7</strong><span>All</span></div>
-                <div className="flex justify-between"><strong>8</strong><span>Viewed</span></div>
-                <div className="flex justify-between"><strong>9</strong><span>Left</span></div>
-                <div className="flex justify-between"><strong>0</strong><span>Toggle Group by Channel</span></div>
-                <div className="flex justify-between"><strong>C</strong><span>Copy all links</span></div>
-                <div className="flex justify-between"><strong>P</strong><span>Download PDF</span></div>
-                <div className="flex justify-between"><strong>T</strong><span>Toggle theme</span></div>
-                <div className="flex justify-between"><strong>S</strong><span>Focus search</span></div>
-                <div className="flex justify-between"><strong>V</strong><span>Cycle view modes</span></div>
-                <div className="flex justify-between"><strong>H</strong><span>Go home</span></div>
-              </div>
-              <div className="flex justify-end mt-4">
-                <Button onClick={() => setShortcutsOpen(false)} className="rounded-full">Close</Button>
+              <div className="grid grid-cols-2 gap-3 py-4 max-h-[calc(100vh-6rem)] overflow-auto">
+                <div className="flex items-center gap-3"><kbd className="rounded-md bg-muted/30 px-2 py-1 text-xs font-semibold">+</kbd><span>Focus add link bar</span></div>
+                <div className="flex items-center gap-3"><kbd className="rounded-md bg-muted/30 px-2 py-1 text-xs font-semibold">1</kbd><span>Videos</span></div>
+                <div className="flex items-center gap-3"><kbd className="rounded-md bg-muted/30 px-2 py-1 text-xs font-semibold">2</kbd><span>Shorts</span></div>
+                <div className="flex items-center gap-3"><kbd className="rounded-md bg-muted/30 px-2 py-1 text-xs font-semibold">3</kbd><span>Channels</span></div>
+                <div className="flex items-center gap-3"><kbd className="rounded-md bg-muted/30 px-2 py-1 text-xs font-semibold">4</kbd><span>Posts</span></div>
+                <div className="flex items-center gap-3"><kbd className="rounded-md bg-muted/30 px-2 py-1 text-xs font-semibold">7</kbd><span>All</span></div>
+                <div className="flex items-center gap-3"><kbd className="rounded-md bg-muted/30 px-2 py-1 text-xs font-semibold">8</kbd><span>Viewed</span></div>
+                <div className="flex items-center gap-3"><kbd className="rounded-md bg-muted/30 px-2 py-1 text-xs font-semibold">9</kbd><span>Left</span></div>
+                <div className="flex items-center gap-3"><kbd className="rounded-md bg-muted/30 px-2 py-1 text-xs font-semibold">0</kbd><span>Toggle Group by Channel</span></div>
+                <div className="flex items-center gap-3"><kbd className="rounded-md bg-muted/30 px-2 py-1 text-xs font-semibold">C</kbd><span>Copy all links</span></div>
+                <div className="flex items-center gap-3"><kbd className="rounded-md bg-muted/30 px-2 py-1 text-xs font-semibold">P</kbd><span>Download PDF</span></div>
+                <div className="flex items-center gap-3"><kbd className="rounded-md bg-muted/30 px-2 py-1 text-xs font-semibold">T</kbd><span>Toggle theme</span></div>
+                <div className="flex items-center gap-3"><kbd className="rounded-md bg-muted/30 px-2 py-1 text-xs font-semibold">S</kbd><span>Focus search</span></div>
+                <div className="flex items-center gap-3"><kbd className="rounded-md bg-muted/30 px-2 py-1 text-xs font-semibold">V</kbd><span>Cycle view modes</span></div>
+                <div className="flex items-center gap-3"><kbd className="rounded-md bg-muted/30 px-2 py-1 text-xs font-semibold">H</kbd><span>Go home</span></div>
               </div>
             </DialogContent>
           </Dialog>
@@ -1580,9 +1576,9 @@ function CompactRow({
   onToggleWatched: () => void;
 }) {
   const playable = v.category === "videos" || v.category === "shorts";
-  return (
+    return (
     <div
-      className={`flex items-center gap-2.5 rounded-lg border border-black/25 dark:border-white/15 border-l-4 px-3 py-1.5 text-sm shadow-[0_8px_18px_rgba(2,6,23,0.08)] transition-all hover:border-slate-300 hover:bg-white/70 hover:shadow-[0_12px_24px_rgba(2,6,23,0.1)] dark:hover:border-indigo-300/35 dark:hover:bg-white/10 dark:hover:shadow-[0_14px_28px_rgba(99,102,241,0.18)] ${v.watched ? "border-l-emerald-500" : "border-l-slate-500/60"
+      className={`flex items-center gap-2.5 rounded-lg border border-black/25 dark:border-white/15 border-l-4 px-3 py-1.5 text-sm shadow-[0_8px_18px_rgba(2,6,23,0.08)] transition-all hover:border-slate-300 hover:bg-white/70 hover:shadow-[0_12px_24px_rgba(2,6,23,0.1)] dark:hover:border-indigo-300/35 dark:hover:bg-white/10 dark:hover:shadow-[0_14px_28px_rgba(99,102,241,0.18)] ${v.watched ? "border-l-emerald-500 dark:border-l-emerald-400/90" : "border-l-slate-500/60"
         } ${index % 2 === 0 ? "bg-card" : "bg-muted/40"}`}
     >
       <Checkbox checked={v.watched} onCheckedChange={onToggleWatched} className="border-2 border-black dark:border-white data-[state=checked]:bg-black dark:data-[state=checked]:bg-white data-[state=checked]:text-white dark:data-[state=checked]:text-black" />

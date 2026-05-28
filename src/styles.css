@@ -204,13 +204,13 @@
 
 /* Player card — simple black/dark-adjusted border */
 .tubedeck-player-border {
-  border: 2px solid #000000;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  border: 0;
+  box-shadow: none;
 }
 
 .dark .tubedeck-player-border {
-  border: 2px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  border: 0;
+  box-shadow: none;
 }
 
 

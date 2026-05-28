@@ -52,13 +52,19 @@ function Landing() {
   const [authOpen, setAuthOpen] = useState<null | "login" | "signup">(null);
   const [activeFeature, setActiveFeature] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [dark, setDark] = useState(() => {
+    if (typeof window === "undefined") return true;
+    const stored = localStorage.getItem("tubedeck.theme");
+    return stored ? stored === "dark" : true;
+  });
+  const featureWindow = [
+    (activeFeature - 1 + FEATURES.length) % FEATURES.length,
+    activeFeature,
+    (activeFeature + 1) % FEATURES.length,
+  ];
 
   useEffect(() => {
-    const stored = localStorage.getItem("tubedeck.theme");
-    const prefersDark =
-      stored === "dark" ||
-      (!stored && window.matchMedia("(prefers-color-scheme: dark)").matches);
-    document.documentElement.classList.toggle("dark", prefersDark);
+    document.documentElement.classList.toggle("dark", dark);
   }, []);
 
   useEffect(() => {
@@ -89,14 +95,15 @@ function Landing() {
           <div
             className={`mx-auto flex w-full items-center justify-between gap-3 transition-all duration-500 ease-in-out pointer-events-auto ${
               isScrolled
-                ? "max-w-3xl rounded-full border border-white/10 bg-black/80 backdrop-blur-xl px-6 py-2.5 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] shadow-black/50"
-                : "max-w-6xl border-b border-white/5 bg-[#0a0a0a]/80 backdrop-blur-xl px-5 py-4"
+                ? "max-w-3xl rounded-full border border-white/10 bg-black/75 backdrop-blur-3xl px-6 py-2.5 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] shadow-black/50"
+                : "max-w-6xl rounded-none border-0 bg-black/35 text-white backdrop-blur-3xl px-6 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.2)]"
             }`}
           >
             <Link to="/" className="flex items-center gap-2">
-              <img src={linkeeLogo} alt="Linkee" className="h-7 w-auto invert" />
+              <img src={linkeeLogo} alt="Linkee" className="h-8 w-auto invert" />
             </Link>
-            <nav className="hidden items-center gap-8 text-sm text-white/70 md:flex">
+            <nav className="hidden items-center gap-8 text-base text-white/75 md:flex">
+              <a href="#video" className="hover:text-white transition-colors">About</a>
               <a href="#features" className="hover:text-white transition-colors">Features</a>
               <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
               <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
@@ -104,13 +111,13 @@ function Landing() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setAuthOpen("login")}
-                className="rounded-full px-4 py-2 text-xs font-semibold text-white/80 transition-colors hover:text-white"
+                className="rounded-full px-5 py-2.5 text-sm font-semibold text-white/80 transition-colors hover:text-white"
               >
                 Log in
               </button>
               <button
                 onClick={() => setAuthOpen("signup")}
-                className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-xs font-semibold text-black shadow-md transition-all hover:scale-105"
+                className="inline-flex items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black shadow-md transition-all hover:scale-105"
               >
                 Sign up
               </button>
@@ -120,23 +127,23 @@ function Landing() {
       </header>
 
       {/* Hero */}
-      <section className="relative mx-auto max-w-6xl px-5 pt-24 pb-28 text-center">
-        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[600px] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.08),transparent_60%)]" />
+      <section className="relative mx-auto max-w-7xl px-5 pt-28 pb-32 text-center">
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[700px] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.1),transparent_60%)]" />
 
-        <div className="animate-fade-in inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs text-white/80 backdrop-blur">
-          <img src={fireGif} alt="" className="h-4 w-4" />
+        <div className="animate-fade-in inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-2 text-sm text-white/80 backdrop-blur-xl">
+          <img src={fireGif} alt="" className="h-5 w-5" />
           Introducing Linkee — Tame your YouTube
         </div>
 
         <h1
-          className="mt-8 animate-fade-in text-5xl font-bold tracking-tight sm:text-6xl md:text-7xl bg-gradient-to-b from-white via-white to-white/40 bg-clip-text text-transparent leading-[1.05]"
+          className="mt-10 animate-fade-in text-7xl font-bold tracking-tight sm:text-6xl md:text-7xl bg-gradient-to-b from-white via-white to-white/35 bg-clip-text text-transparent leading-[1.02]"
           style={{ animationDelay: "0.1s", animationFillMode: "both" }}
         >
           Your YouTube, organized<br />beautifully in one place.
         </h1>
 
         <p
-          className="mx-auto mt-6 max-w-2xl animate-fade-in text-base text-white/60 sm:text-lg"
+          className="mx-auto mt-8 max-w-3xl animate-fade-in text-lg text-white/60 sm:text-xl"
           style={{ animationDelay: "0.2s", animationFillMode: "both" }}
         >
           Paste links to videos, shorts, channels and community posts. Watch in theatre mode,
@@ -144,19 +151,19 @@ function Landing() {
         </p>
 
         <div
-          className="mt-10 flex animate-fade-in flex-col items-center justify-center gap-3 sm:flex-row"
+          className="mt-12 flex animate-fade-in flex-col items-center justify-center gap-4 sm:flex-row"
           style={{ animationDelay: "0.3s", animationFillMode: "both" }}
         >
           <Link
             to="/app"
-            className="inline-flex items-center gap-2 rounded-full bg-white px-6 py-3 text-sm font-semibold text-black shadow-lg transition-all hover:scale-105"
+            className="inline-flex items-center gap-2 rounded-full bg-white px-8 py-4 text-base font-semibold text-black shadow-lg transition-all hover:scale-105"
           >
-            <Rocket className="h-4 w-4" />
+            <Rocket className="h-5 w-5" />
             Launch Linkee — it's free
           </Link>
           <a
             href="#features"
-            className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-6 py-3 text-sm font-medium text-white transition-all hover:bg-white/10"
+            className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/5 px-8 py-4 text-base font-medium text-white transition-all hover:bg-white/10"
           >
             See what it does
           </a>
@@ -164,7 +171,7 @@ function Landing() {
 
         {/* Curved marquee */}
         <div
-          className="mt-10 animate-fade-in"
+          className="mt-0 animate-fade-in"
           style={{ animationDelay: "0.35s", animationFillMode: "both" }}
         >
           <CurvedLoop
@@ -177,10 +184,11 @@ function Landing() {
 
         {/* Hero video */}
         <div
-          className="mx-auto mt-10 max-w-4xl animate-fade-in"
+          id="video"
+          className="mx-auto mt-46 max-w-6xl animate-fade-in"
           style={{ animationDelay: "0.4s", animationFillMode: "both" }}
         >
-          <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-2 shadow-2xl backdrop-blur">
+          <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-3 shadow-2xl backdrop-blur">
             <div className="aspect-video overflow-hidden rounded-xl bg-black">
               <iframe
                 className="h-full w-full"
@@ -196,43 +204,45 @@ function Landing() {
 
 
       {/* Features */}
-      <section id="features" className="mx-auto max-w-6xl px-5 py-24">
+      <section id="features" className="mx-auto max-w-7xl px-5 py-12">
         <div className="text-center">
-          <h2 className="bg-gradient-to-b from-white to-white/50 bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl">
+          <h2 className="bg-gradient-to-b from-white to-white/50 bg-clip-text text-5xl font-bold tracking-tight text-transparent sm:text-6xl">
             More and more...
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-white/60">
+          <p className="mx-auto mt-5 max-w-2xl text-lg text-white/60">
             Every tool you need to keep your watchlist sane.
           </p>
         </div>
-        <div className="mt-14 linkee-marquee-mask overflow-hidden">
-          <div
-            className="linkee-carousel-track flex"
-            style={{
-              transform: `translateX(calc(50% - ${activeFeature * 308}px - 144px))`,
-            }}
-          >
-            {FEATURES.map((f, i) => {
+        <div className="mt-12 overflow-visible px-0 sm:px-4 lg:px-10">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.12fr)_minmax(0,1fr)] md:items-stretch md:gap-6 lg:gap-8">
+            {featureWindow.map((featureIndex, slotIndex) => {
+              const f = FEATURES[featureIndex];
               const Icon = f.icon;
-              const isActive = i === activeFeature;
+              const isActive = slotIndex === 1;
+              const slotMotion =
+                slotIndex === 0
+                  ? "md:translate-x-2 md:rotate-[-1deg]"
+                  : slotIndex === 2
+                    ? "md:-translate-x-2 md:rotate-[1deg]"
+                    : "md:translate-y-0";
               return (
                 <div
-                  key={i}
-                  className={`mx-2.5 w-72 shrink-0 rounded-2xl border p-6 transition-all duration-500 ${
+                  key={`${featureIndex}-${slotIndex}`}
+                  className={`relative z-10 rounded-3xl border p-7 transition-all duration-700 ease-out ${slotMotion} ${
                     isActive
-                      ? "-translate-y-5 scale-105 border-white/25 bg-white/[0.08] shadow-2xl shadow-white/10"
-                      : "border-white/10 bg-white/[0.03] opacity-60"
+                      ? "md:-translate-y-2 md:scale-[1.06] border-white/25 bg-white/[0.08] shadow-2xl shadow-white/10"
+                      : "border-white/10 bg-white/[0.03] opacity-80 md:scale-[0.97]"
                   }`}
                 >
                   <div
-                    className={`inline-flex h-10 w-10 items-center justify-center rounded-xl transition-colors ${
+                    className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl transition-colors ${
                       isActive ? "bg-white text-black" : "bg-white/10 text-white"
                     }`}
                   >
                     <Icon className="h-5 w-5" />
                   </div>
-                  <h3 className="mt-4 text-base font-semibold text-white">{f.title}</h3>
-                  <p className="mt-1.5 text-sm text-white/60">{f.desc}</p>
+                  <h3 className="mt-5 text-lg font-semibold text-white">{f.title}</h3>
+                  <p className="mt-3 text-sm leading-6 text-white/60">{f.desc}</p>
                 </div>
               );
             })}
@@ -257,16 +267,16 @@ function Landing() {
 
 
       {/* Pricing */}
-      <section id="pricing" className="mx-auto max-w-6xl px-5 py-24">
+      <section id="pricing" className="mx-auto max-w-7xl px-5 py-28">
         <div className="text-center">
-          <h2 className="bg-gradient-to-b from-white to-white/50 bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl">
+          <h2 className="bg-gradient-to-b from-white to-white/50 bg-clip-text text-5xl font-bold tracking-tight text-transparent sm:text-6xl">
             Simple, honest pricing
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-white/60">
+          <p className="mx-auto mt-5 max-w-2xl text-lg text-white/60">
             Start free. Upgrade when you want more power.
           </p>
         </div>
-        <div className="mt-14 grid gap-6 md:grid-cols-3">
+        <div className="mt-16 grid gap-6 md:grid-cols-3">
           {PLANS.map((p, i) => (
             <div
               key={p.name}
@@ -315,16 +325,16 @@ function Landing() {
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="mx-auto max-w-3xl px-5 py-24">
+      <section id="faq" className="mx-auto max-w-4xl px-5 py-15">
         <div className="text-center">
-          <h2 className="bg-gradient-to-b from-white to-white/50 bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-5xl">
+          <h2 className="bg-gradient-to-b from-white to-white/50 bg-clip-text text-5xl font-bold tracking-tight text-transparent sm:text-6xl">
             Frequently asked
           </h2>
-          <p className="mx-auto mt-4 max-w-xl text-white/60">
+          <p className="mx-auto mt-5 max-w-2xl text-lg text-white/60">
             Everything you might want to know before you start.
           </p>
         </div>
-        <div className="mt-12 space-y-3">
+        <div className="mt-14 space-y-3">
           {FAQS.map((f, i) => (
             <FaqItem key={f.q} q={f.q} a={f.a} defaultOpen={i === 0} />
           ))}
@@ -373,7 +383,7 @@ function Landing() {
           <div>
             <div className="text-sm font-semibold text-white">Company</div>
             <ul className="mt-4 space-y-2.5 text-sm text-white/60">
-              <li><a href="https://x.com/provanshh" target="_blank" rel="noreferrer noopener" className="hover:text-white">Contact</a></li>
+              <li><a href="mailto:vs.vansh19@gmail.com" className="hover:text-white">Contact</a></li>
               <li><a href="#faq" className="hover:text-white">FAQ</a></li>
             </ul>
           </div>
@@ -439,15 +449,15 @@ function AuthDialog({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-md" />
+      <div className="absolute inset-0 z-0 bg-black/70 backdrop-blur-md" />
       <div
         ref={dialogRef}
-        className="relative w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-[#0c0c0c] shadow-2xl"
+        className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-[#0c0c0c] shadow-2xl"
       >
         <div className="pointer-events-none absolute inset-x-0 top-0 h-32 bg-[radial-gradient(ellipse_at_top,rgba(255,255,255,0.08),transparent_70%)]" />
         <button
           onClick={onClose}
-          className="absolute right-4 top-4 rounded-full p-1.5 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
+          className="absolute right-4 top-4 z-20 rounded-full p-1.5 text-white/50 transition-colors hover:bg-white/10 hover:text-white"
           aria-label="Close"
         >
           <X className="h-4 w-4" />
