@@ -182,6 +182,15 @@ export default function Dashboard() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
+  const [alwaysShowControls, setAlwaysShowControls] = useState<boolean>(() => {
+    if (typeof window === "undefined") return true;
+    const v = localStorage.getItem("tubedeck.alwaysShowControls");
+    return v === null ? true : v === "true";
+  });
+
+  useEffect(() => {
+    try { localStorage.setItem("tubedeck.alwaysShowControls", String(alwaysShowControls)); } catch { /* */ }
+  }, [alwaysShowControls]);
   const playerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
