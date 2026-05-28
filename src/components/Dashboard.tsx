@@ -550,6 +550,14 @@ export default function Dashboard() {
                   <Download className="h-4 w-4" /> Download PDF
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  onClick={(e) => { e.preventDefault(); setAlwaysShowControls((s) => !s); }}
+                  className="cursor-pointer text-xs"
+                >
+                  {alwaysShowControls ? <Eye className="h-4 w-4" /> : <Eye className="h-4 w-4 opacity-50" />}
+                  {alwaysShowControls ? "Controls: always shown" : "Controls: on hover"}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setProfileOpen(true)} className="cursor-pointer text-xs">
                   <User className="h-4 w-4" /> Profile
                 </DropdownMenuItem>
