@@ -1070,15 +1070,16 @@ function ViewBtn({
   return (
     <button
       onClick={onClick}
-      className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium transition-all ${
+      className={`view-btn inline-flex items-center rounded-full px-2 py-1 text-xs font-medium transition-all ${
         active
           ? "bg-primary text-primary-foreground shadow-md"
           : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
       }`}
       aria-pressed={active}
+      title={label}
     >
       {icon}
-      <span className="hidden sm:inline">{label}</span>
+      <span className="view-btn-label">{label}</span>
     </button>
   );
 }
