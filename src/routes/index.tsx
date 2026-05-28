@@ -14,7 +14,7 @@ import {
   Eye,
   ClipboardCopy,
   Clipboard,
-  LayoutGrid,
+  LayoutDashboard,
   Lock,
   Palette,
   X,
@@ -567,7 +567,7 @@ const FEATURES: { icon: LucideIcon; title: string; desc: string }[] = [
   { icon: Eye, title: "Filter what's left", desc: "Hide watched, see only what's left, or sort by channel in one click." },
   { icon: ClipboardCopy, title: "Copy & export", desc: "Copy every link grouped by category, or export your whole library to PDF." },
   { icon: Clipboard, title: "Paste anywhere", desc: "Just hit Ctrl+V anywhere in the app — Linkee figures the rest out." },
-  { icon: LayoutGrid, title: "Three views", desc: "Gallery, list and compact — match how you want to scan your library." },
+  { icon: LayoutDashboard, title: "Three views", desc: "Gallery, list and compact — match how you want to scan your library." },
   { icon: Lock, title: "Local-first", desc: "Your library lives in your browser. No account, no tracking, no waiting." },
   { icon: Palette, title: "Beautiful, dark or light", desc: "A calm interface that gets out of your way. Switches with your system." },
 ];

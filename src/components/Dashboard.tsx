@@ -39,7 +39,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Link } from "@tanstack/react-router";
 import { Home } from "lucide-react";
 import {
-  LayoutGrid,
+  LayoutDashboard,
   List as ListIcon,
   Rows3,
   Search,
@@ -480,7 +480,7 @@ export default function Dashboard() {
               <Home className="h-4 w-4" />
             </Link>
             <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 shadow-sm">
-              <ViewBtn icon={<LayoutGrid className="h-3.5 w-3.5" />} label="Gallery" active={view === "gallery"} onClick={() => setView("gallery")} />
+              <ViewBtn icon={<LayoutDashboard className="h-3.5 w-3.5" />} label="Gallery" active={view === "gallery"} onClick={() => setView("gallery")} />
               <ViewBtn icon={<ListIcon className="h-3.5 w-3.5" />} label="List" active={view === "list"} onClick={() => setView("list")} />
               <ViewBtn icon={<Rows3 className="h-3.5 w-3.5" />} label="Compact" active={view === "compact"} onClick={() => setView("compact")} />
             </div>
