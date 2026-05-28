@@ -73,6 +73,8 @@ import {
   MoreVertical,
 } from "lucide-react";
 import { toast } from "sonner";
+import { getYouTubeMeta } from "@/lib/api/youtube.functions";
+import React from "react";
 
 type EyeFilter = "all" | "viewed" | "left";
 
@@ -146,27 +148,17 @@ function parseYouTube(input: string): Parsed | null {
   return null;
 }
 
-async function fetchMeta(url: string): Promise<{ title: string; author: string }> {
-  try {
-    const res = await fetch(`https://noembed.com/embed?url=${encodeURIComponent(url)}`);
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.title) return { title: data.title, author: data.author_name ?? "YouTube" };
-    }
-  } catch {
-    // ignore
+function thumbnailFor(p: Parsed, metaThumbnail?: string): string {
+  if (p.category === "channel" || p.category === "posts") {
+    return metaThumbnail ?? "";
   }
-  return { title: url, author: "YouTube" };
-}
-
-function thumbnailFor(p: Parsed): string {
   if (p.category === "videos" || p.category === "shorts") {
     return `https://i.ytimg.com/vi/${p.id}/hqdefault.jpg`;
   }
   return "";
 }
 
-export default function Dashboard() {
+export function Dashboard() {
   const [videos, setVideos] = useState<Video[]>([]);
   const [bulk, setBulk] = useState("");
   const [search, setSearch] = useState("");
@@ -185,17 +177,54 @@ export default function Dashboard() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [alwaysShowControls, setAlwaysShowControls] = useState<boolean>(() => {
-    if (typeof window === "undefined") return true;
-    const v = localStorage.getItem("tubedeck.alwaysShowControls");
-    return v === null ? true : v === "true";
-  });
-
-  useEffect(() => {
-    try { localStorage.setItem("tubedeck.alwaysShowControls", String(alwaysShowControls)); } catch { /* */ }
-  }, [alwaysShowControls]);
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const pasteInputRef = useRef<HTMLInputElement | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+  const alwaysShowControls = true;
   const playerRef = useRef<HTMLDivElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement | null;
+      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA" || target.isContentEditable)) return;
+      const k = e.key.toLowerCase();
+      if (k === "+") {
+        e.preventDefault();
+        pasteInputRef.current?.focus();
+        pasteInputRef.current?.select();
+        return;
+      }
+      if (k === "1") return setCategory("videos");
+      if (k === "2") return setCategory("shorts");
+      if (k === "3") return setCategory("channel");
+      if (k === "4") return setCategory("posts");
+      if (k === "7") return setEyeFilter("all");
+      if (k === "8") return setEyeFilter("viewed");
+      if (k === "9") return setEyeFilter("left");
+      if (k === "0") return setSortByChannel((s) => !s);
+      if (k === "c") return void copyAllLinks();
+      if (k === "p") return void downloadPdf();
+      if (k === "t") return toggleDark();
+      if (k === "s") {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+        return;
+      }
+      if (k === "v") {
+        const modes: ViewMode[] = ["gallery", "tile", "list", "compact"];
+        setView((prev) => {
+          const ix = modes.indexOf(prev);
+          return modes[(ix + 1) % modes.length];
+        });
+        return;
+      }
+      if (k === "h") return void (window.location.href = "/");
+      if (k === "?") return setShortcutsOpen(true);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [copyAllLinks, downloadPdf, toggleDark]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -245,12 +274,50 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setVideos(JSON.parse(raw));
-    } catch {
-      // ignore
-    }
+    let cancelled = false;
+
+    const loadVideos = async () => {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) return;
+
+        const storedVideos = JSON.parse(raw) as Video[];
+        if (cancelled) return;
+        setVideos(storedVideos);
+
+        const missingThumbnails = storedVideos.filter(
+          (video) => (video.category === "channel" || video.category === "posts") && !video.thumbnail,
+        );
+        if (missingThumbnails.length === 0) return;
+
+        const updates = await Promise.all(
+          missingThumbnails.map(async (video) => {
+            const meta = await getYouTubeMeta({ data: { url: video.url, category: video.category } });
+            return {
+              key: `${video.category}:${video.id}`,
+              thumbnail: meta.thumbnail ?? "",
+            };
+          }),
+        );
+
+        if (cancelled) return;
+
+        setVideos((current) =>
+          current.map((video) => {
+            const match = updates.find((entry) => entry.key === `${video.category}:${video.id}`);
+            return match && !video.thumbnail ? { ...video, thumbnail: match.thumbnail } : video;
+          }),
+        );
+      } catch {
+        // ignore
+      }
+    };
+
+    void loadVideos();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
@@ -279,12 +346,12 @@ export default function Dashboard() {
     setLoading(true);
     const metas = await Promise.all(
       fresh.map(async (p) => {
-        const meta = await fetchMeta(p.url);
+        const meta = await getYouTubeMeta({ data: { url: p.url, category: p.category } });
         return {
           id: p.id,
           title: meta.title,
           author: meta.author,
-          thumbnail: thumbnailFor(p),
+          thumbnail: thumbnailFor(p, meta.thumbnail),
           url: p.url,
           category: p.category,
           watched: false,
@@ -484,27 +551,26 @@ export default function Dashboard() {
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background text-foreground">
       {/* ── Full-width Top Navbar ── */}
-      {/* NAVBAR BACKGROUND COLOR CONTROLLER: Modify the gradient colors below (e.g., from-[#13c8ff] via-[#2563eb] to-[#9333ea]) to change the navbar background. */}
-      <header className="z-40 w-full shrink-0 border-b border-white/10 bg-gradient-to-r from-[#13c8ff] via-[#2563eb] to-[#9333ea] text-white shadow-md">
+      <header className="z-40 w-full shrink-0 border-b border-sky-100 bg-gradient-to-r from-sky-50 via-white to-indigo-50 text-slate-900 shadow-[0_8px_20px_rgba(14,165,233,0.08)] dark:border-indigo-400/20 dark:bg-gradient-to-r dark:from-slate-950 dark:via-indigo-950/80 dark:to-purple-950/80 dark:text-slate-100 dark:shadow-sm">
         <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
 
           {/* Left: Mobile Menu + Home + View Buttons */}
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="flex h-8 w-8 items-center justify-center rounded-full border border-white/20 bg-white/10 text-white shadow-sm hover:bg-white/20 hover:border-white/30 transition-all md:hidden"
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-all md:hidden dark:border-indigo-300/20 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/15 dark:hover:border-indigo-200/35"
               aria-label="Open menu"
             >
               <ListIcon className="h-4 w-4" />
             </button>
             <Link
               to="/"
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/10 shadow-sm hover:bg-white/20 border border-white/20 hover:scale-105 transition-transform text-white/90 hover:text-white"
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-sm hover:bg-sky-50 border border-sky-200 hover:scale-105 transition-transform text-slate-700 hover:text-sky-700 dark:border-indigo-300/20 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/15 dark:hover:text-white"
               aria-label="Home"
             >
               <Home className="h-4 w-4" />
             </Link>
-            <div className="inline-flex items-center rounded-full border border-white/20 bg-white/10 p-0.5 shadow-sm">
+            <div className="inline-flex items-center rounded-full border border-sky-200 bg-white/90 p-0.5 shadow-sm dark:border-indigo-300/20 dark:bg-white/10">
               <ViewBtn icon={<LayoutDashboard className="h-3.5 w-3.5" />} label="Gallery" active={view === "gallery"} onClick={() => setView("gallery")} />
               <ViewBtn icon={<Grid className="h-3.5 w-3.5" />} label="Tile" active={view === "tile"} onClick={() => setView("tile")} />
               <ViewBtn icon={<ListIcon className="h-3.5 w-3.5" />} label="List" active={view === "list"} onClick={() => setView("list")} />
@@ -513,24 +579,26 @@ export default function Dashboard() {
           </div>
 
           {/* Center: Search */}
-          <div className="flex flex-1 max-w-xs md:max-w-md mx-2">
+              <div className="flex flex-1 max-w-xs md:max-w-md mx-2">
             <div className="relative w-full group">
-              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-white/70" />
+              <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-300/75" />
               <Input
+                ref={searchInputRef}
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
                 placeholder="Search titles, authors..."
-                className="h-9 w-full rounded-full border border-white/20 bg-white/10 pl-10 pr-3 text-sm font-medium text-white placeholder:text-white/60 shadow-sm focus:bg-white/15 focus:border-white/40 focus:ring-0 focus-visible:ring-0 outline-none transition-all"
+                className="h-9 w-full rounded-full border border-sky-200 bg-white pl-10 pr-3 text-sm font-medium text-slate-800 placeholder:text-slate-400 shadow-sm focus:bg-white focus:border-sky-300 focus:ring-0 focus-visible:ring-0 outline-none transition-all dark:border-indigo-300/20 dark:bg-white/10 dark:text-slate-100 dark:placeholder:text-slate-300/65 dark:focus:border-indigo-300 dark:focus:bg-white/15"
               />
             </div>
           </div>
 
           {/* Right: Add control + Settings */}
           <div className="flex items-center gap-1.5">
-            <div className="inline-flex items-center rounded-full border border-white/20 bg-white/10 px-1 py-0.5 shadow-sm gap-0.5">
+            <div className="inline-flex items-center rounded-full border border-sky-200 bg-white/90 px-1 py-0.5 shadow-sm gap-0.5 dark:border-indigo-300/20 dark:bg-white/10">
               {/* Add single link — always-visible input, auto-submits on paste */}
-              <Plus className="h-3.5 w-3.5 ml-1 shrink-0 text-white/70" />
+              <Plus className="h-3.5 w-3.5 ml-1 shrink-0 text-slate-500 dark:text-slate-300/80" />
               <Input
+                ref={pasteInputRef}
                 value={paste}
                 onChange={(e) => setPaste(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter") handlePaste(); }}
@@ -546,25 +614,29 @@ export default function Dashboard() {
                 }}
                 placeholder="Paste YouTube link…"
                 disabled={loading}
-                className="h-7 w-32 sm:w-44 rounded-full border-0 bg-transparent px-2 text-xs text-white shadow-none focus-visible:ring-0 placeholder:text-white/60"
+                className="h-7 w-32 sm:w-44 rounded-full border-0 bg-transparent px-2 text-xs text-slate-700 shadow-none focus-visible:ring-0 placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-300/65"
               />
               {/* Bulk add */}
               <button
                 onClick={() => setBulkOpen(true)}
-                className="view-btn inline-flex items-center rounded-full px-2 py-1 text-xs font-medium text-white/80 hover:bg-white/15 hover:text-white transition-all"
+                className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium text-slate-700 hover:bg-sky-100 hover:text-sky-800 transition-all dark:text-slate-100 dark:hover:bg-white/15 dark:hover:text-white"
               >
                 <ClipboardPaste className="h-3.5 w-3.5" />
-                <span className="view-btn-label">Bulk</span>
+                <span className="ml-1">Bulk</span>
               </button>
             </div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button aria-label="Settings" className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 shadow-sm hover:shadow-md border border-white/20 text-white hover:bg-white/20 hover:border-white/30 transition-all">
+                <button aria-label="Settings" className="flex h-8 w-8 items-center justify-center rounded-full bg-white shadow-sm hover:shadow-md border border-sky-200 text-slate-700 hover:bg-sky-50 hover:border-sky-300 transition-all dark:border-indigo-300/20 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/15 dark:hover:border-indigo-200/35">
                   <Settings className="h-4 w-4" />
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-48 rounded-xl">
                 <DropdownMenuLabel className="text-xs">Settings</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setShortcutsOpen(true)} className="cursor-pointer text-xs">
+                  Keyboard shortcuts
+                </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={toggleDark} className="cursor-pointer text-xs">
                   {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -575,14 +647,6 @@ export default function Dashboard() {
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={downloadPdf} className="cursor-pointer text-xs" disabled={videos.length === 0}>
                   <Download className="h-4 w-4" /> Download PDF
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  onClick={(e) => { e.preventDefault(); setAlwaysShowControls((s) => !s); }}
-                  className="cursor-pointer text-xs"
-                >
-                  {alwaysShowControls ? <Eye className="h-4 w-4" /> : <Eye className="h-4 w-4 opacity-50" />}
-                  {alwaysShowControls ? "Controls: always shown" : "Controls: on hover"}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => setProfileOpen(true)} className="cursor-pointer text-xs">
@@ -598,7 +662,7 @@ export default function Dashboard() {
       {/* Mobile Drawer Sidebar Overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 flex md:hidden bg-background/80 backdrop-blur-sm">
-          <div className="w-56 bg-card p-4 flex flex-col justify-between border-r border-black/10 dark:border-white/10 animate-in slide-in-from-left duration-200 h-full">
+          <div className="w-56 bg-gradient-to-b from-sky-50 via-white to-indigo-50 p-4 flex flex-col justify-between border-r border-sky-200 shadow-xl ring-1 ring-sky-200/70 animate-in slide-in-from-left duration-200 h-full dark:bg-gradient-to-b dark:from-slate-950 dark:via-indigo-950/80 dark:to-indigo-950/80 dark:border-indigo-300/20 dark:ring-indigo-300/20">
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
                 <span className="font-bold text-base tracking-tight bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">TubeDeck</span>
@@ -648,7 +712,7 @@ export default function Dashboard() {
       <div className="flex flex-1 min-h-0 overflow-hidden">
 
         {/* Slim Icon Sidebar */}
-        <aside className="hidden md:flex w-[64px] shrink-0 flex-col items-center justify-between border-r border-border bg-card/30 py-2 h-full overflow-hidden">
+        <aside className="hidden md:flex w-[64px] shrink-0 flex-col items-center justify-between border-r border-sky-200 bg-gradient-to-b from-sky-50 via-white to-indigo-50 py-2 h-full overflow-hidden shadow-lg ring-1 ring-sky-200/70 dark:border-indigo-300/20 dark:bg-gradient-to-b dark:from-slate-950 dark:via-indigo-950/80 dark:to-indigo-950/80 dark:ring-indigo-300/20">
           {/* Top: Category icons */}
           <div className="flex flex-col items-center gap-0.5">
             {CATEGORIES.map((c) => {
@@ -659,7 +723,7 @@ export default function Dashboard() {
                   onClick={() => setCategory(c.value)}
                   className={`group relative flex flex-col items-center justify-center w-[52px] h-[48px] rounded-lg transition-colors duration-150 ${isActive
                       ? "bg-primary/10 text-primary"
-                      : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+                      : "text-muted-foreground dark:text-slate-200 hover:bg-accent/60 dark:hover:bg-white/10 hover:text-foreground dark:hover:text-slate-100"
                     }`}
                   aria-label={c.label}
                 >
@@ -669,7 +733,7 @@ export default function Dashboard() {
                   <div className="relative flex items-center justify-center">
                     {c.icon}
                     {counts[c.value] > 0 && (
-                      <span className={`absolute -top-1 -right-2 flex h-3.5 min-w-3.5 items-center justify-center rounded-full text-[9px] font-semibold leading-none px-1 ${isActive ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"
+                      <span className={`absolute -top-1 -right-2 flex h-3.5 min-w-3.5 items-center justify-center rounded-full text-[9px] font-semibold leading-none px-1 ${isActive ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground dark:bg-transparent dark:text-slate-300"
                         }`}>{counts[c.value]}</span>
                     )}
                   </div>
@@ -690,11 +754,16 @@ export default function Dashboard() {
                   left: <Play className="h-4 w-4" />,
                 };
                 const labels: Record<EyeFilter, string> = { all: "All", viewed: "Viewed", left: "Left" };
-                const activeStyles: Record<EyeFilter, string> = {
-                  all: "bg-sky-500/10 text-sky-500",
-                  viewed: "bg-emerald-500/10 text-emerald-500",
-                  left: "bg-amber-500/10 text-amber-600 dark:text-amber-400",
+                  const activeStyles: Record<EyeFilter, string> = {
+                  all: "bg-gradient-to-br from-sky-100 to-cyan-100 text-sky-700 ring-1 ring-sky-300 shadow-sm dark:from-transparent dark:via-transparent dark:to-transparent dark:bg-sky-500/10 dark:text-sky-400 dark:ring-0 dark:shadow-none",
+                  viewed: "bg-gradient-to-br from-emerald-100 to-lime-100 text-emerald-700 ring-1 ring-emerald-300 shadow-sm dark:from-transparent dark:via-transparent dark:to-transparent dark:bg-emerald-500/10 dark:text-emerald-400 dark:ring-0 dark:shadow-none",
+                  left: "bg-gradient-to-br from-amber-100 to-orange-100 text-amber-700 ring-1 ring-amber-300 shadow-sm dark:from-transparent dark:via-transparent dark:to-transparent dark:bg-amber-500/10 dark:text-amber-400 dark:ring-0 dark:shadow-none",
                 };
+                  const indicatorColors: Record<EyeFilter, string> = {
+                    all: "bg-sky-500",
+                    viewed: "bg-emerald-500",
+                    left: "bg-amber-500",
+                  };
                 const hoverText: Record<EyeFilter, string> = {
                   all: "hover:text-sky-500",
                   viewed: "hover:text-emerald-500",
@@ -705,13 +774,18 @@ export default function Dashboard() {
                   <button
                     key={filter}
                     onClick={() => setEyeFilter(filter)}
-                    className={`flex flex-col items-center justify-center w-[52px] h-[44px] rounded-lg transition-colors duration-150 ${isActive
+                    className={`relative flex flex-col items-center justify-center w-[52px] h-[44px] rounded-lg transition-colors duration-150 ${isActive
                         ? activeStyles[filter]
-                        : `text-muted-foreground hover:bg-accent/60 ${hoverText[filter]}`
+                        : `text-muted-foreground dark:text-slate-100 hover:bg-accent/60 dark:hover:bg-white/10 dark:hover:text-slate-100 ${hoverText[filter]}`
                       }`}
                     aria-label={labels[filter]}
                   >
-                    {icons[filter]}
+                    {isActive && (
+                      <span className={`absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-r-full ${indicatorColors[filter]}`} />
+                    )}
+                    <span className={`inline-flex h-6 w-6 items-center justify-center rounded-full transition-all ${isActive ? "bg-white/80" : "bg-slate-100/80"} dark:bg-transparent`}>
+                      {icons[filter]}
+                    </span>
                     <span className="text-[9.5px] mt-0.5 font-medium tracking-tight leading-none">{labels[filter]}</span>
                   </button>
                 );
@@ -725,12 +799,15 @@ export default function Dashboard() {
             <button
               onClick={() => setSortByChannel((s) => !s)}
               className={`relative flex flex-col items-center justify-center w-[52px] h-[44px] rounded-lg transition-colors duration-150 ${sortByChannel
-                  ? "bg-violet-500/10 text-violet-500"
+                  ? "bg-gradient-to-br from-violet-100 to-fuchsia-100 text-violet-700 ring-1 ring-violet-300 shadow-sm dark:from-transparent dark:via-transparent dark:to-transparent dark:bg-violet-500/10 dark:text-violet-400 dark:ring-0 dark:shadow-none"
                   : "text-muted-foreground hover:bg-accent/60 hover:text-violet-500"
                 }`}
               aria-label="Sort by channel"
             >
-              <div className="relative">
+              {sortByChannel && (
+                  <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-r-full bg-violet-500" />
+                )}
+              <div className="relative inline-flex h-6 w-6 items-center justify-center rounded-full bg-slate-100/80 dark:bg-white/10">
                 <ArrowUpDown className="h-4 w-4" />
                 <span className={`absolute -top-1 -right-1.5 h-1.5 w-1.5 rounded-full transition-all ${sortByChannel ? "bg-violet-500 shadow-[0_0_6px_rgba(139,92,246,0.7)]" : "bg-violet-500/40"
                   }`} />
@@ -1063,9 +1140,71 @@ export default function Dashboard() {
               </div>
             </DialogContent>
           </Dialog>
+          <Dialog open={shortcutsOpen} onOpenChange={setShortcutsOpen}>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Keyboard shortcuts</DialogTitle>
+                <DialogDescription>Quick keys for fast navigation and actions.</DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-2 py-2">
+                <div className="flex justify-between"><strong>+</strong><span>Focus add link bar</span></div>
+                <div className="flex justify-between"><strong>1</strong><span>Videos</span></div>
+                <div className="flex justify-between"><strong>2</strong><span>Shorts</span></div>
+                <div className="flex justify-between"><strong>3</strong><span>Channels</span></div>
+                <div className="flex justify-between"><strong>4</strong><span>Posts</span></div>
+                <div className="flex justify-between"><strong>7</strong><span>All</span></div>
+                <div className="flex justify-between"><strong>8</strong><span>Viewed</span></div>
+                <div className="flex justify-between"><strong>9</strong><span>Left</span></div>
+                <div className="flex justify-between"><strong>0</strong><span>Toggle Group by Channel</span></div>
+                <div className="flex justify-between"><strong>C</strong><span>Copy all links</span></div>
+                <div className="flex justify-between"><strong>P</strong><span>Download PDF</span></div>
+                <div className="flex justify-between"><strong>T</strong><span>Toggle theme</span></div>
+                <div className="flex justify-between"><strong>S</strong><span>Focus search</span></div>
+                <div className="flex justify-between"><strong>V</strong><span>Cycle view modes</span></div>
+                <div className="flex justify-between"><strong>H</strong><span>Go home</span></div>
+              </div>
+              <div className="flex justify-end mt-4">
+                <Button onClick={() => setShortcutsOpen(false)} className="rounded-full">Close</Button>
+              </div>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
     </div>
+  );
+}
+
+class ErrorBoundary extends React.Component<{ children?: React.ReactNode }, { hasError: boolean; error?: any }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError(error: any) {
+    return { hasError: true, error };
+  }
+  componentDidCatch(error: any, info: any) {
+    // Log to console for developer
+    // eslint-disable-next-line no-console
+    console.error("Dashboard render error:", error, info);
+  }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="p-6">
+          <h2 className="text-lg font-semibold">Something went wrong rendering the dashboard</h2>
+          <pre className="mt-3 max-h-[60vh] overflow-auto text-xs bg-muted p-3 rounded">{String(this.state.error)}</pre>
+        </div>
+      );
+    }
+    return this.props.children ?? null;
+  }
+}
+
+export default function DashboardWithBoundary() {
+  return (
+    <ErrorBoundary>
+      <Dashboard />
+    </ErrorBoundary>
   );
 }
 
@@ -1101,7 +1240,7 @@ function CopyButton({
     return (
       <button
         onClick={onClick}
-        className="flex w-full items-center gap-2 text-xs"
+        className="flex w-full items-center gap-2 pl-1.5 text-xs"
       >
         {copied
           ? <Check className="h-3.5 w-3.5 text-emerald-600" />
@@ -1149,9 +1288,9 @@ function ViewBtn({
   return (
     <button
       onClick={onClick}
-      className={`view-btn inline-flex items-center rounded-full px-2 py-1 text-xs font-medium transition-all ${active
-          ? "bg-white text-slate-900 shadow-md"
-          : "text-white/80 hover:bg-white/15 hover:text-white"
+        className={`view-btn inline-flex items-center rounded-full px-2 py-1 text-xs font-medium transition-all ${active
+          ? "bg-slate-900 text-white shadow-md dark:bg-gradient-to-r dark:from-indigo-500 dark:to-purple-500 dark:shadow-[0_8px_20px_rgba(99,102,241,0.45)]"
+          : "text-slate-700 hover:bg-slate-200 hover:text-slate-900 dark:text-slate-100 dark:hover:bg-white/15 dark:hover:text-white"
         }`}
       aria-pressed={active}
       title={label}
@@ -1164,8 +1303,8 @@ function ViewBtn({
 
 function watchedBorder(watched: boolean) {
   return watched
-    ? "border-2 border-emerald-500/70 shadow-[0_0_0_3px_rgba(16,185,129,0.15)]"
-    : "border-2 border-rose-500/60 shadow-[0_0_0_3px_rgba(244,63,94,0.12)]";
+    ? "border border-emerald-500/90 ring-1 ring-black/25 dark:ring-white/20 bg-emerald-50/45 dark:bg-emerald-500/10 shadow-[0_0_0_2px_rgba(16,185,129,0.18),0_12px_24px_rgba(16,185,129,0.14)] watched-card-border"
+    : "border border-rose-500/90 ring-1 ring-black/25 dark:ring-white/20 bg-rose-50/45 dark:bg-rose-500/10 shadow-[0_0_0_2px_rgba(244,63,94,0.18),0_12px_24px_rgba(244,63,94,0.14)]";
 }
 
 /** Derive a stable pastel hue from any string */
@@ -1234,12 +1373,11 @@ function GalleryCard({
   const playable = v.category === "videos" || v.category === "shorts";
   const isChannelOrPost = v.category === "channel" || v.category === "posts";
   return (
-    <div className="gallery-card group flex flex-col">
+    <div className={`gallery-card group flex flex-col rounded-2xl bg-card/80 p-2 backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white/70 hover:shadow-[0_16px_34px_rgba(2,6,23,0.1)] dark:hover:border-indigo-300/35 dark:hover:bg-white/10 dark:hover:shadow-[0_16px_34px_rgba(99,102,241,0.2)] ${watchedBorder(v.watched)}`}>
       {/* Thumbnail */}
       <button
         onClick={playable ? onPlay : () => window.open(v.url, "_blank")}
-        className={`relative block w-full overflow-hidden rounded-xl bg-muted transition-all duration-200 hover:brightness-95 ${v.watched ? "ring-2 ring-emerald-500/60" : ""
-          }`}
+        className="relative block w-full overflow-hidden rounded-xl bg-muted transition-all duration-200 hover:brightness-95"
         style={{ aspectRatio: isChannelOrPost ? "16 / 9" : "16 / 9" }}
       >
         <ThumbOrFallback v={v} />
@@ -1331,7 +1469,7 @@ function ShortsCard({
   alwaysShowControls: boolean;
 }) {
   return (
-    <Card className={`gallery-card group overflow-hidden rounded-2xl p-0 transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg ${watchedBorder(v.watched)}`}>
+    <Card className={`gallery-card group overflow-hidden rounded-2xl bg-card/80 p-0 backdrop-blur-sm transition-all duration-300 hover:-translate-y-0.5 hover:border-slate-300 hover:bg-white/70 hover:shadow-[0_16px_34px_rgba(2,6,23,0.12)] dark:hover:border-indigo-300/35 dark:hover:bg-white/10 dark:hover:shadow-[0_18px_38px_rgba(99,102,241,0.22)] ${watchedBorder(v.watched)}`}>
       <button
         onClick={onPlay}
         className="relative block w-full overflow-hidden"
@@ -1392,7 +1530,7 @@ function ListRow({
 }) {
   const playable = v.category === "videos" || v.category === "shorts";
   return (
-    <Card className={`flex items-center gap-3 rounded-xl p-2 transition-shadow hover:shadow-md ${watchedBorder(v.watched)}`}>
+    <Card className={`flex items-center gap-3 rounded-xl bg-card/80 p-2.5 backdrop-blur-sm transition-all hover:-translate-y-[1px] hover:border-slate-300 hover:bg-white/70 hover:shadow-[0_14px_32px_rgba(2,6,23,0.1)] dark:hover:border-indigo-300/35 dark:hover:bg-white/10 dark:hover:shadow-[0_16px_34px_rgba(99,102,241,0.2)] ${watchedBorder(v.watched)}`}>
       <Checkbox checked={v.watched} onCheckedChange={onToggleWatched} className="border-2 border-black dark:border-white data-[state=checked]:bg-black dark:data-[state=checked]:bg-white data-[state=checked]:text-white dark:data-[state=checked]:text-black" />
       <button
         onClick={playable ? onPlay : () => window.open(v.url, "_blank")}
@@ -1444,7 +1582,7 @@ function CompactRow({
   const playable = v.category === "videos" || v.category === "shorts";
   return (
     <div
-      className={`flex items-center gap-2.5 border-l-4 px-3 py-1.5 text-sm ${v.watched ? "border-l-emerald-500" : "border-l-rose-500"
+      className={`flex items-center gap-2.5 rounded-lg border border-black/25 dark:border-white/15 border-l-4 px-3 py-1.5 text-sm shadow-[0_8px_18px_rgba(2,6,23,0.08)] transition-all hover:border-slate-300 hover:bg-white/70 hover:shadow-[0_12px_24px_rgba(2,6,23,0.1)] dark:hover:border-indigo-300/35 dark:hover:bg-white/10 dark:hover:shadow-[0_14px_28px_rgba(99,102,241,0.18)] ${v.watched ? "border-l-emerald-500" : "border-l-slate-500/60"
         } ${index % 2 === 0 ? "bg-card" : "bg-muted/40"}`}
     >
       <Checkbox checked={v.watched} onCheckedChange={onToggleWatched} className="border-2 border-black dark:border-white data-[state=checked]:bg-black dark:data-[state=checked]:bg-white data-[state=checked]:text-white dark:data-[state=checked]:text-black" />
