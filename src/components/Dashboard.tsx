@@ -474,10 +474,10 @@ export default function Dashboard() {
             </button>
             <Link
               to="/"
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm hover:shadow-md transition-all hover:scale-105"
+              className="inline-flex h-9 items-center justify-center rounded-full hover:scale-105 transition-transform"
               aria-label="Home"
             >
-              <Home className="h-4 w-4" />
+              <img src={linkeeLogo} alt="Linkee" className="h-7 w-auto" />
             </Link>
             <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 shadow-sm">
               <ViewBtn icon={<LayoutDashboard className="h-3.5 w-3.5" />} label="Gallery" active={view === "gallery"} onClick={() => setView("gallery")} />
