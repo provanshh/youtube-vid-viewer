@@ -902,6 +902,7 @@ export default function Dashboard() {
                   onPlay={() => setActiveId(`${v.category}:${v.id}`)}
                   onRemove={() => setConfirmId(`${v.category}:${v.id}`)}
                   onToggleWatched={() => toggleWatched(`${v.category}:${v.id}`)}
+                  alwaysShowControls={alwaysShowControls}
                 />
               ))}
             </div>
