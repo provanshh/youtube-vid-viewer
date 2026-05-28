@@ -137,6 +137,10 @@
     border-color: var(--color-border);
   }
 
+  html, body {
+    overflow-x: hidden;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
@@ -159,6 +163,18 @@
 .tubedeck-player:fullscreen .tubedeck-player-bar { display: none; }
 .tubedeck-player:fullscreen > div:last-child { height: 100vh; max-width: none; }
 .tubedeck-player:fullscreen iframe { max-height: 100vh !important; height: 100vh !important; }
+
+/* Player card — simple black/dark-adjusted border */
+.tubedeck-player-border {
+  border: 2px solid #000000;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+}
+
+.dark .tubedeck-player-border {
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+}
+
 
 /* Landing page animations */
 @keyframes fade-in {

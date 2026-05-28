@@ -172,6 +172,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
   const [playerSize, setPlayerSize] = useState<PlayerSize>("full");
+  const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [dark, setDark] = useState(false);
   const [category, setCategory] = useState<Category>("videos");
@@ -179,7 +180,18 @@ export default function Dashboard() {
   const [eyeFilter, setEyeFilter] = useState<EyeFilter>("all");
   const [sortByChannel, setSortByChannel] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [isScrolled, setIsScrolled] = useState(false);
   const playerRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const copyAllLinks = async () => {
     if (videos.length === 0) {
@@ -427,441 +439,547 @@ export default function Dashboard() {
         const v = videos.find((x) => `${x.category}:${x.id}` === activeId);
         if (!v) return "";
         if (v.category === "shorts")
-          return `https://www.youtube.com/embed/${v.id}?autoplay=1`;
-        return `https://www.youtube.com/embed/${v.id}?autoplay=1`;
+          return `https://www.youtube.com/embed/${v.id}?autoplay=1&enablejsapi=1`;
+        return `https://www.youtube.com/embed/${v.id}?autoplay=1&enablejsapi=1`;
       })()
     : "";
 
+  const SPEED_OPTIONS = [0.5, 1, 1.25, 1.5, 1.75, 2, 2.25, 2.5, 2.75, 3, 4];
+
+  const applySpeed = (speed: number) => {
+    setPlaybackSpeed(speed);
+    const iframe = iframeRef.current;
+    if (iframe?.contentWindow) {
+      iframe.contentWindow.postMessage(
+        JSON.stringify({ event: "command", func: "setPlaybackRate", args: [speed] }),
+        "*"
+      );
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      {/* Header */}
-      <header className="sticky top-0 z-20 border-b border-border bg-background/70 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-3 py-2 sm:gap-3 sm:px-4">
-          <Link
-            to="/"
-            className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm hover:shadow-md transition-all hover:scale-105"
-            aria-label="Home"
-          >
-            <Home className="h-4 w-4" />
-          </Link>
+    <div className="flex flex-col h-screen overflow-hidden bg-background text-foreground">
+      {/* ── Full-width Top Navbar ── */}
+      <header className="z-40 w-full shrink-0 border-b border-black/10 dark:border-white/10 bg-background/80 backdrop-blur-xl shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
 
-          <Select value={category} onValueChange={(v) => setCategory(v as Category)}>
-            <SelectTrigger className="h-8 w-auto gap-1.5 rounded-full border-border bg-card px-3 text-xs font-medium shadow-sm hover:shadow-md">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="rounded-xl">
-              {CATEGORIES.map((c) => (
-                <SelectItem key={c.value} value={c.value} className="rounded-md text-xs">
-                  <span className="flex items-center gap-2">
-                    {c.icon}
-                    {c.label}
-                    <span className="ml-1 text-muted-foreground">{counts[c.value]}</span>
-                  </span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-
-          {/* Search */}
-          <div className="order-last flex w-full items-stretch sm:order-none sm:mx-auto sm:w-auto sm:max-w-xl sm:flex-1">
-            <div className="relative flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search title, author or paste a YouTube URL…"
-                className="h-8 rounded-full border-border bg-card pl-8 pr-3 text-xs shadow-sm focus-visible:shadow-md"
-              />
-            </div>
-          </div>
-
-          {/* Eye filter */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                aria-label="Filter watched"
-                className={`flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs font-medium shadow-sm hover:shadow-md ${
-                  eyeFilter === "all"
-                    ? "bg-card"
-                    : eyeFilter === "viewed"
-                      ? "bg-emerald-500/15 text-emerald-600"
-                      : "bg-rose-500/15 text-rose-600"
-                }`}
-              >
-                <Eye className="h-4 w-4" />
-                <span className="hidden sm:inline capitalize">{eyeFilter}</span>
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-36 rounded-xl">
-              <DropdownMenuLabel className="text-xs">Show</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setEyeFilter("all")} className="cursor-pointer text-xs">All</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setEyeFilter("viewed")} className="cursor-pointer text-xs">Viewed</DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setEyeFilter("left")} className="cursor-pointer text-xs">Left</DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* Sort by channel */}
-          <button
-            onClick={() => setSortByChannel((s) => !s)}
-            aria-label="Sort by channel"
-            title={sortByChannel ? "Sorted by channel" : "Sort by channel"}
-            className={`flex h-8 w-8 items-center justify-center rounded-full shadow-sm hover:shadow-md ${
-              sortByChannel ? "bg-primary text-primary-foreground" : "bg-card"
-            }`}
-          >
-            <ArrowUpDown className="h-4 w-4" />
-          </button>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button
-                aria-label="Settings"
-                className="flex h-8 w-8 items-center justify-center rounded-full bg-card shadow-sm hover:shadow-md"
-              >
-                <Settings className="h-4 w-4" />
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48 rounded-xl">
-              <DropdownMenuLabel className="text-xs">Settings</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={toggleDark} className="cursor-pointer text-xs">
-                {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                {dark ? "Light theme" : "Dark theme"}
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={copyAllLinks}
-                className="cursor-pointer text-xs"
-                disabled={videos.length === 0}
-              >
-                <Copy className="h-4 w-4" /> Copy links
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={downloadPdf}
-                className="cursor-pointer text-xs"
-                disabled={videos.length === 0}
-              >
-                <Download className="h-4 w-4" /> Download PDF
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setProfileOpen(true)} className="cursor-pointer text-xs">
-                <User className="h-4 w-4" /> Profile
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-
-        {/* Paste bar + views + bulk add */}
-        <div className="border-t border-border/60 bg-card/30">
-          <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-2 px-3 py-1.5 sm:flex-nowrap sm:px-4">
+          {/* Left: Mobile Menu + Home + View Buttons */}
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setSidebarOpen(true)}
+              className="flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm hover:shadow-md transition-all md:hidden"
+              aria-label="Open menu"
+            >
+              <ListIcon className="h-4 w-4" />
+            </button>
+            <Link
+              to="/"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card text-foreground shadow-sm hover:shadow-md transition-all hover:scale-105"
+              aria-label="Home"
+            >
+              <Home className="h-4 w-4" />
+            </Link>
             <div className="inline-flex items-center rounded-full border border-border bg-card p-0.5 shadow-sm">
               <ViewBtn icon={<LayoutGrid className="h-3.5 w-3.5" />} label="Gallery" active={view === "gallery"} onClick={() => setView("gallery")} />
               <ViewBtn icon={<ListIcon className="h-3.5 w-3.5" />} label="List" active={view === "list"} onClick={() => setView("list")} />
               <ViewBtn icon={<Rows3 className="h-3.5 w-3.5" />} label="Compact" active={view === "compact"} onClick={() => setView("compact")} />
             </div>
+          </div>
 
-            <div className="flex flex-1 items-center gap-1.5 rounded-full bg-background/60 px-3 shadow-inner ring-1 ring-border/40 focus-within:ring-border">
-              <Plus className="h-3.5 w-3.5 text-muted-foreground" />
+          {/* Center: Search */}
+          <div className="flex flex-1 max-w-xs md:max-w-md mx-2">
+            <div className="relative w-full">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search titles, authors..."
+                className="h-8 w-full rounded-full border-border bg-card pl-8 pr-3 text-xs shadow-sm focus-visible:shadow-md"
+              />
+            </div>
+          </div>
+
+          {/* Right: Link Bar + Bulk Add + Settings */}
+          <div className="flex items-center gap-1.5">
+            <div className="hidden sm:flex items-center gap-1.5 rounded-full bg-background/60 px-3 py-0.5 ring-1 ring-border/40 focus-within:ring-border max-w-[200px] md:max-w-xs">
+              <Plus className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
               <Input
                 value={paste}
                 onChange={(e) => setPaste(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handlePaste();
-                }}
-                placeholder="Paste a YouTube link and hit Enter — auto-sorted"
-                className="h-7 flex-1 border-0 bg-transparent px-0 text-xs shadow-none focus-visible:ring-0"
+                onKeyDown={(e) => { if (e.key === "Enter") handlePaste(); }}
+                placeholder="Add YouTube link..."
+                className="h-7 w-full border-0 bg-transparent px-0 text-xs shadow-none focus-visible:ring-0"
               />
-              <Button
-                size="sm"
-                variant="secondary"
-                className="h-6 rounded-full px-3 text-[11px]"
-                onClick={handlePaste}
-                disabled={!paste.trim() || loading}
-              >
+              <Button size="sm" variant="secondary" className="h-6 rounded-full px-2 text-[10px]" onClick={handlePaste} disabled={!paste.trim() || loading}>
                 Add
               </Button>
             </div>
-
             <button
               onClick={() => setBulkOpen(true)}
-              className="inline-flex h-8 items-center gap-1.5 rounded-full bg-foreground px-3 text-xs font-medium text-background shadow-md transition-shadow hover:shadow-lg"
+              className="inline-flex h-8 items-center gap-1.5 rounded-full bg-foreground px-3 text-xs font-semibold text-background shadow-md transition-shadow hover:shadow-lg"
             >
               <ClipboardPaste className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Bulk add</span>
+              <span className="hidden lg:inline">Bulk Add</span>
             </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button aria-label="Settings" className="flex h-8 w-8 items-center justify-center rounded-full bg-card shadow-sm hover:shadow-md border border-border">
+                  <Settings className="h-4 w-4" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 rounded-xl">
+                <DropdownMenuLabel className="text-xs">Settings</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={toggleDark} className="cursor-pointer text-xs">
+                  {dark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                  {dark ? "Light theme" : "Dark theme"}
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={copyAllLinks} className="cursor-pointer text-xs" disabled={videos.length === 0}>
+                  <Copy className="h-4 w-4" /> Copy links
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={downloadPdf} className="cursor-pointer text-xs" disabled={videos.length === 0}>
+                  <Download className="h-4 w-4" /> Download PDF
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={() => setProfileOpen(true)} className="cursor-pointer text-xs">
+                  <User className="h-4 w-4" /> Profile
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
+
         </div>
       </header>
 
-      <main className="mx-auto max-w-7xl space-y-4 px-3 py-4 sm:px-4">
-
-
-        {/* Player */}
-        {activeId && playerEmbedSrc && (
-          <Card
-            className="tubedeck-player overflow-hidden rounded-2xl p-0 shadow-lg"
-            ref={playerRef as React.Ref<HTMLDivElement>}
-          >
-            <div className="tubedeck-player-bar flex items-center justify-between gap-2 border-b border-border bg-card/60 px-3 py-2">
-              <div className="flex min-w-0 items-center gap-2">
-                <p className="truncate text-xs font-medium text-muted-foreground">Now playing</p>
-                <NowPlayingBars />
-              </div>
-              <div className="flex items-center gap-1">
-                <div className="inline-flex items-center rounded-full border border-border bg-background p-0.5">
-                  <PlayerSizeBtn icon={<Minimize2 className="h-3.5 w-3.5" />} label="Small" active={playerSize === "small"} onClick={() => setPlayerSize("small")} />
-                  <PlayerSizeBtn icon={<Monitor className="h-3.5 w-3.5" />} label="Full width" active={playerSize === "full"} onClick={() => setPlayerSize("full")} />
-                  <PlayerSizeBtn icon={<Maximize2 className="h-3.5 w-3.5" />} label="Full screen" active={playerSize === "fullscreen"} onClick={enterFullscreen} />
-                </div>
-                <CopyButton url={videos.find((v) => `${v.category}:${v.id}` === activeId)?.url ?? ""} />
-                <a
-                  href={videos.find((v) => `${v.category}:${v.id}` === activeId)?.url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-accent"
-                  aria-label="Open on YouTube"
-                >
-                  <ExternalLink className="h-3.5 w-3.5" />
-                </a>
-                <button
-                  onClick={() => setActiveId(null)}
-                  className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                  aria-label="Close player"
-                >
-                  <X className="h-3.5 w-3.5" />
+      {/* Mobile Drawer Sidebar Overlay */}
+      {sidebarOpen && (
+        <div className="fixed inset-0 z-50 flex md:hidden bg-background/80 backdrop-blur-sm">
+          <div className="w-56 bg-card p-4 flex flex-col justify-between border-r border-black/10 dark:border-white/10 animate-in slide-in-from-left duration-200 h-full">
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-base tracking-tight bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">TubeDeck</span>
+                <button onClick={() => setSidebarOpen(false)} className="rounded-full p-1 hover:bg-accent text-muted-foreground" aria-label="Close menu">
+                  <X className="h-4 w-4" />
                 </button>
               </div>
+              <div className="flex flex-col gap-1">
+                {CATEGORIES.map((c) => {
+                  const isActive = category === c.value;
+                  return (
+                    <button key={c.value} onClick={() => { setCategory(c.value); setSidebarOpen(false); }}
+                      className={`flex items-center justify-between w-full rounded-lg px-3 py-2 text-xs font-semibold transition-all ${
+                        isActive ? "bg-foreground text-background" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
+                      }`}>
+                      <span className="flex items-center gap-2">{c.icon}{c.label}</span>
+                      <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+                        isActive ? "bg-background/20 text-background" : "bg-foreground/5 text-muted-foreground"
+                      }`}>{counts[c.value]}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
-            {activeId.startsWith("shorts:") && playerSize !== "fullscreen" ? (
-              <div className="flex w-full items-center justify-center bg-black py-4">
-                <div className="relative flex items-center gap-3">
-                  <div
-                    className="relative overflow-hidden rounded-xl bg-black"
-                    style={{ aspectRatio: "9 / 16", height: "min(80vh, 720px)" }}
+            <div className="flex flex-col gap-3 border-t border-black/10 dark:border-white/10 pt-3">
+              <div className="grid grid-cols-3 gap-1 rounded-lg bg-foreground/5 p-1">
+                {(["all", "viewed", "left"] as EyeFilter[]).map((filter) => (
+                  <button key={filter} onClick={() => { setEyeFilter(filter); setSidebarOpen(false); }}
+                    className={`rounded-md py-1.5 text-center text-xs font-semibold capitalize transition-all ${
+                      eyeFilter === filter ? "bg-foreground text-background" : "text-muted-foreground"
+                    }`}>
+                    {filter === "all" ? "All" : filter === "viewed" ? "Viewed" : "Left"}
+                  </button>
+                ))}
+              </div>
+              <button onClick={() => { setSortByChannel((s) => !s); setSidebarOpen(false); }}
+                className={`flex items-center gap-2 w-full rounded-lg border px-3 py-2 text-xs font-semibold transition-all ${
+                  sortByChannel ? "border-foreground bg-foreground/5 text-foreground" : "border-black/10 dark:border-white/10 text-muted-foreground"
+                }`}>
+                <ArrowUpDown className="h-3.5 w-3.5" />
+                Group by Channel
+                <span className={`ml-auto h-2 w-2 rounded-full ${sortByChannel ? "bg-emerald-500" : "bg-muted-foreground/30"}`} />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1" onClick={() => setSidebarOpen(false)} />
+        </div>
+      )}
+
+      {/* ── Body: slim sidebar + main content ── */}
+      <div className="flex flex-1 min-h-0 overflow-hidden">
+
+        {/* Slim Icon Sidebar */}
+        <aside className="hidden md:flex w-[72px] shrink-0 flex-col items-center justify-between border-r border-black/10 dark:border-white/10 bg-card/30 py-1.5 h-full overflow-hidden">
+          {/* Top: Category icons */}
+          <div className="flex flex-col items-center gap-0.5">
+            {CATEGORIES.map((c) => {
+              const isActive = category === c.value;
+              return (
+                <button
+                  key={c.value}
+                  onClick={() => setCategory(c.value)}
+                  className={`flex flex-col items-center justify-center w-[64px] h-[58px] rounded-xl transition-all duration-200 ${
+                    isActive
+                      ? "text-foreground font-bold bg-background shadow-md border border-border/80 scale-[1.04]"
+                      : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground hover:scale-[1.02] hover:shadow-sm"
+                  }`}
+                  aria-label={c.label}
+                >
+                  <div className="relative flex items-center justify-center">
+                    {c.icon}
+                    <span className={`absolute -top-1.5 -right-2 flex h-4 min-w-4 items-center justify-center rounded-full text-[9px] font-bold leading-none px-1 shadow-[0_1px_3px_rgba(0,0,0,0.15)] ${
+                      isActive ? "bg-red-600 text-white" : "bg-red-500 text-white"
+                    }`}>{counts[c.value] ?? 0}</span>
+                  </div>
+                  <span className="text-[10px] mt-1 tracking-wide leading-none">{c.label}</span>
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Bottom: Filter & Sort icons */}
+          <div className="flex flex-col items-center gap-0.5 border-t border-black/10 dark:border-white/10 pt-2">
+            {/* All / Viewed / Left */}
+            {(["all", "viewed", "left"] as EyeFilter[]).map((filter) => {
+              const icons: Record<EyeFilter, React.ReactNode> = {
+                all: <Eye className="h-4 w-4" />,
+                viewed: <Check className="h-4 w-4" />,
+                left: <Play className="h-4 w-4" />,
+              };
+              const labels: Record<EyeFilter, string> = { all: "All", viewed: "Viewed", left: "Left" };
+              const isActive = eyeFilter === filter;
+              return (
+                <button
+                  key={filter}
+                  onClick={() => setEyeFilter(filter)}
+                  className={`flex flex-col items-center justify-center w-[64px] h-[58px] rounded-xl transition-all duration-200 ${
+                    isActive
+                      ? "text-foreground font-bold bg-background shadow-md border border-border/80 scale-[1.04]"
+                      : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground hover:scale-[1.02] hover:shadow-sm"
+                  }`}
+                  aria-label={labels[filter]}
+                >
+                  {icons[filter]}
+                  <span className="text-[10px] mt-1 tracking-wide leading-none">{labels[filter]}</span>
+                </button>
+              );
+            })}
+            {/* Sort */}
+            <button
+              onClick={() => setSortByChannel((s) => !s)}
+              className={`flex flex-col items-center justify-center w-[64px] h-[58px] rounded-xl transition-all duration-200 ${
+                sortByChannel
+                  ? "text-foreground font-bold bg-background shadow-md border border-border/80 scale-[1.04]"
+                  : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground hover:scale-[1.02] hover:shadow-sm"
+              }`}
+              aria-label="Sort by channel"
+            >
+              <div className="relative">
+                <ArrowUpDown className="h-4 w-4" />
+                {sortByChannel && <span className="absolute -top-1 -right-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500" />}
+              </div>
+              <span className="text-[10px] mt-1 tracking-wide leading-none">Group</span>
+            </button>
+          </div>
+        </aside>
+
+        {/* Main Content Pane */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+          <main className="mx-auto max-w-7xl space-y-4 px-3 py-4 sm:px-4">
+          {/* Player */}
+          {activeId && playerEmbedSrc && (
+            <Card
+              className="tubedeck-player overflow-hidden rounded-2xl p-0 tubedeck-player-border"
+              ref={playerRef as React.Ref<HTMLDivElement>}
+            >
+              <div className="tubedeck-player-bar flex items-center justify-between gap-2 border-b border-border bg-card/60 px-3 py-2">
+                <div className="flex min-w-0 items-center gap-2">
+                  <p className="truncate text-xs font-medium text-muted-foreground">Now playing</p>
+                  <NowPlayingBars />
+                </div>
+                <div className="flex items-center gap-1">
+                  {/* Speed control */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <button
+                        aria-label="Playback speed"
+                        className="flex h-7 items-center gap-1 rounded-full border border-border bg-background px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+                      >
+                        <span className="tabular-nums">{playbackSpeed === 1 ? "1x" : `${playbackSpeed}x`}</span>
+                      </button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-28 rounded-xl">
+                      <DropdownMenuLabel className="text-xs">Speed</DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      {SPEED_OPTIONS.map((s) => (
+                        <DropdownMenuItem
+                          key={s}
+                          onClick={() => applySpeed(s)}
+                          className={`cursor-pointer text-xs tabular-nums ${
+                            playbackSpeed === s ? "font-semibold text-primary" : ""
+                          }`}
+                        >
+                          {s === 1 ? "1x (normal)" : `${s}x`}
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <div className="inline-flex items-center rounded-full border border-border bg-background p-0.5">
+                    <PlayerSizeBtn icon={<Minimize2 className="h-3.5 w-3.5" />} label="Small" active={playerSize === "small"} onClick={() => setPlayerSize("small")} />
+                    <PlayerSizeBtn icon={<Monitor className="h-3.5 w-3.5" />} label="Full width" active={playerSize === "full"} onClick={() => setPlayerSize("full")} />
+                    <PlayerSizeBtn icon={<Maximize2 className="h-3.5 w-3.5" />} label="Full screen" active={playerSize === "fullscreen"} onClick={enterFullscreen} />
+                  </div>
+                  <CopyButton url={videos.find((v) => `${v.category}:${v.id}` === activeId)?.url ?? ""} />
+                  <a
+                    href={videos.find((v) => `${v.category}:${v.id}` === activeId)?.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-accent"
+                    aria-label="Open on YouTube"
                   >
-                    <iframe
-                      key={activeId}
-                      src={playerEmbedSrc}
-                      title="YouTube short"
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                      allowFullScreen
-                      className="absolute inset-0 h-full w-full"
-                    />
-                  </div>
-                  <div className="flex flex-col gap-3">
-                    <button
-                      onClick={() => {
-                        const list = videos.filter((x) => x.category === "shorts");
-                        const idx = list.findIndex((x) => `${x.category}:${x.id}` === activeId);
-                        const prev = list[idx - 1];
-                        if (prev) setActiveId(`${prev.category}:${prev.id}`);
-                      }}
-                      className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-secondary-foreground shadow hover:bg-accent disabled:opacity-40"
-                      aria-label="Previous short"
-                    >
-                      <ChevronUp className="h-5 w-5" />
-                    </button>
-                    <button
-                      onClick={() => {
-                        const list = videos.filter((x) => x.category === "shorts");
-                        const idx = list.findIndex((x) => `${x.category}:${x.id}` === activeId);
-                        const next = list[idx + 1];
-                        if (next) setActiveId(`${next.category}:${next.id}`);
-                      }}
-                      className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-secondary-foreground shadow hover:bg-accent disabled:opacity-40"
-                      aria-label="Next short"
-                    >
-                      <ChevronDown className="h-5 w-5" />
-                    </button>
-                  </div>
+                    <ExternalLink className="h-3.5 w-3.5" />
+                  </a>
+                  <button
+                    onClick={() => setActiveId(null)}
+                    className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                    aria-label="Close player"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
                 </div>
               </div>
-            ) : (
-            <div
-              className={
-                playerSize === "small"
-                  ? "mx-auto w-full max-w-md bg-black"
-                  : "w-full bg-black"
-              }
-            >
-              {playerSize === "full" ? (
-                <div className="relative mx-auto w-full" style={{ maxHeight: "calc(100vh - 200px)", aspectRatio: "16 / 9" }}>
-                  <iframe
-                    key={activeId}
-                    src={playerEmbedSrc}
-                    title="YouTube player"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    className="absolute inset-0 h-full w-full"
-                    style={{ maxHeight: "calc(100vh - 200px)" }}
-                  />
+              {activeId.startsWith("shorts:") && playerSize !== "fullscreen" ? (
+                <div className="flex w-full items-center justify-center bg-black py-4">
+                  <div className="relative flex items-center gap-3">
+                    <div
+                      className="relative overflow-hidden rounded-xl bg-black"
+                      style={{ aspectRatio: "9 / 16", height: "min(80vh, 720px)" }}
+                    >
+                      <iframe
+                        key={activeId}
+                        src={playerEmbedSrc}
+                        title="YouTube short"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="absolute inset-0 h-full w-full"
+                      />
+                    </div>
+                    <div className="flex flex-col gap-3">
+                      <button
+                        onClick={() => {
+                          const list = videos.filter((x) => x.category === "shorts");
+                          const idx = list.findIndex((x) => `${x.category}:${x.id}` === activeId);
+                          const prev = list[idx - 1];
+                          if (prev) setActiveId(`${prev.category}:${prev.id}`);
+                        }}
+                        className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-secondary-foreground shadow hover:bg-accent disabled:opacity-40"
+                        aria-label="Previous short"
+                      >
+                        <ChevronUp className="h-5 w-5" />
+                      </button>
+                      <button
+                        onClick={() => {
+                          const list = videos.filter((x) => x.category === "shorts");
+                          const idx = list.findIndex((x) => `${x.category}:${x.id}` === activeId);
+                          const next = list[idx + 1];
+                          if (next) setActiveId(`${next.category}:${next.id}`);
+                        }}
+                        className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-secondary-foreground shadow hover:bg-accent disabled:opacity-40"
+                        aria-label="Next short"
+                      >
+                        <ChevronDown className="h-5 w-5" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               ) : (
-                <div className="relative w-full" style={{ aspectRatio: "16 / 9" }}>
-                  <iframe
-                    key={activeId}
-                    src={playerEmbedSrc}
-                    title="YouTube player"
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    allowFullScreen
-                    className="absolute inset-0 h-full w-full"
-                  />
+                <div
+                  className={
+                    playerSize === "small"
+                      ? "mx-auto w-full max-w-md bg-black"
+                      : "w-full bg-black"
+                  }
+                >
+                  {playerSize === "full" ? (
+                    <div className="relative mx-auto w-full" style={{ maxHeight: "calc(100vh - 200px)", aspectRatio: "16 / 9" }}>
+                      <iframe
+                        key={activeId}
+                        ref={iframeRef}
+                        src={playerEmbedSrc}
+                        title="YouTube player"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="absolute inset-0 h-full w-full"
+                        style={{ maxHeight: "calc(100vh - 200px)" }}
+                      />
+                    </div>
+                  ) : (
+                    <div className="relative w-full" style={{ aspectRatio: "16 / 9" }}>
+                      <iframe
+                        key={activeId}
+                        ref={iframeRef}
+                        src={playerEmbedSrc}
+                        title="YouTube player"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                        allowFullScreen
+                        className="absolute inset-0 h-full w-full"
+                      />
+                    </div>
+                  )}
                 </div>
               )}
+            </Card>
+          )}
+
+          {/* Results */}
+          {filtered.length === 0 ? (
+            <Card className="flex flex-col items-center justify-center gap-2 rounded-2xl p-12 text-center shadow-sm">
+              <Youtube className="h-10 w-10 text-muted-foreground" />
+              <p className="text-sm font-medium">Nothing here yet</p>
+              <p className="text-xs text-muted-foreground">
+                Paste a YouTube link above — videos, shorts, channels & posts are sorted automatically.
+              </p>
+            </Card>
+          ) : view === "gallery" && category === "shorts" ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
+              {filtered.map((v) => (
+                <ShortsCard
+                  key={`${v.category}:${v.id}`}
+                  v={v}
+                  onPlay={() => setActiveId(`${v.category}:${v.id}`)}
+                  onRemove={() => setConfirmId(`${v.category}:${v.id}`)}
+                  onToggleWatched={() => toggleWatched(`${v.category}:${v.id}`)}
+                />
+              ))}
             </div>
-            )}
-          </Card>
-        )}
-
-
-        {/* Results */}
-        {filtered.length === 0 ? (
-          <Card className="flex flex-col items-center justify-center gap-2 rounded-2xl p-12 text-center shadow-sm">
-            <Youtube className="h-10 w-10 text-muted-foreground" />
-            <p className="text-sm font-medium">Nothing here yet</p>
-            <p className="text-xs text-muted-foreground">
-              Paste a YouTube link above — videos, shorts, channels & posts are sorted automatically.
-            </p>
-          </Card>
-        ) : view === "gallery" && category === "shorts" ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
-            {filtered.map((v) => (
-              <ShortsCard
-                key={`${v.category}:${v.id}`}
-                v={v}
-                onPlay={() => setActiveId(`${v.category}:${v.id}`)}
-                onRemove={() => setConfirmId(`${v.category}:${v.id}`)}
-                onToggleWatched={() => toggleWatched(`${v.category}:${v.id}`)}
-              />
-            ))}
-          </div>
-        ) : view === "gallery" ? (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-            {filtered.map((v) => (
-              <GalleryCard
-                key={`${v.category}:${v.id}`}
-                v={v}
-                onPlay={() => setActiveId(`${v.category}:${v.id}`)}
-                onRemove={() => setConfirmId(`${v.category}:${v.id}`)}
-                onToggleWatched={() => toggleWatched(`${v.category}:${v.id}`)}
-              />
-            ))}
-          </div>
-        ) : view === "list" ? (
-          <div className="flex flex-col gap-2">
-            {filtered.map((v) => (
-              <ListRow
-                key={`${v.category}:${v.id}`}
-                v={v}
-                onPlay={() => setActiveId(`${v.category}:${v.id}`)}
-                onRemove={() => setConfirmId(`${v.category}:${v.id}`)}
-                onToggleWatched={() => toggleWatched(`${v.category}:${v.id}`)}
-              />
-            ))}
-          </div>
-        ) : (
-          <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-            {filtered.map((v, i) => (
-              <CompactRow
-                key={`${v.category}:${v.id}`}
-                v={v}
-                index={i}
-                onPlay={() => setActiveId(`${v.category}:${v.id}`)}
-                onRemove={() => setConfirmId(`${v.category}:${v.id}`)}
-                onToggleWatched={() => toggleWatched(`${v.category}:${v.id}`)}
-              />
-            ))}
-          </div>
-        )}
-      </main>
-
-      {/* Bulk paste modal */}
-      <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
-        <DialogContent className="rounded-2xl shadow-2xl sm:max-w-xl">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <ClipboardPaste className="h-5 w-5" /> Bulk add
-            </DialogTitle>
-            <DialogDescription>
-              Paste multiple YouTube links separated by commas, spaces or new lines.
-              They'll be sorted into videos, shorts, channels or posts automatically.
-            </DialogDescription>
-          </DialogHeader>
-          <Textarea
-            placeholder="https://youtu.be/…, https://youtube.com/shorts/…, https://youtube.com/@handle, https://youtube.com/post/…"
-            value={bulk}
-            onChange={(e) => setBulk(e.target.value)}
-            rows={6}
-            className="resize-none rounded-xl"
-          />
-          <div className="flex justify-end gap-2">
-            <Button variant="ghost" size="sm" className="rounded-full" onClick={() => setBulkOpen(false)}>
-              Cancel
-            </Button>
-            <Button size="sm" className="rounded-full shadow-md" onClick={handleAddBulk} disabled={loading || !bulk.trim()}>
-              Import all
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={!!confirmId} onOpenChange={(o) => !o && setConfirmId(null)}>
-        <AlertDialogContent className="rounded-2xl">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete this item?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will remove it from your saved list. This cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="rounded-full">Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmRemove}
-              className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>Profile</DialogTitle>
-            <DialogDescription>Built by Provansh</DialogDescription>
-          </DialogHeader>
-          <div className="flex items-center gap-4 py-2">
-            <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 text-2xl font-bold text-primary-foreground">
-              P
+          ) : view === "gallery" ? (
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+              {filtered.map((v) => (
+                <GalleryCard
+                  key={`${v.category}:${v.id}`}
+                  v={v}
+                  onPlay={() => setActiveId(`${v.category}:${v.id}`)}
+                  onRemove={() => setConfirmId(`${v.category}:${v.id}`)}
+                  onToggleWatched={() => toggleWatched(`${v.category}:${v.id}`)}
+                />
+              ))}
             </div>
-            <div>
-              <div className="text-base font-semibold">Provansh</div>
-              <div className="text-xs text-muted-foreground">Creator of TubeDeck</div>
+          ) : view === "list" ? (
+            <div className="flex flex-col gap-2">
+              {filtered.map((v) => (
+                <ListRow
+                  key={`${v.category}:${v.id}`}
+                  v={v}
+                  onPlay={() => setActiveId(`${v.category}:${v.id}`)}
+                  onRemove={() => setConfirmId(`${v.category}:${v.id}`)}
+                  onToggleWatched={() => toggleWatched(`${v.category}:${v.id}`)}
+                />
+              ))}
             </div>
-          </div>
-          <div className="flex flex-col gap-2">
-            <a
-              href="https://x.com/provanshh"
-              target="_blank"
-              rel="noreferrer noopener"
-              className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm hover:bg-accent"
-            >
-              <span>𝕏 / Twitter</span>
-              <span className="text-xs text-muted-foreground">@provanshh</span>
-            </a>
-            <a
-              href="https://www.linkedin.com/in/provanshh/"
-              target="_blank"
-              rel="noreferrer noopener"
-              className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm hover:bg-accent"
-            >
-              <span>LinkedIn</span>
-              <span className="text-xs text-muted-foreground">in/provanshh</span>
-            </a>
-          </div>
-        </DialogContent>
-      </Dialog>
+          ) : (
+            <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+              {filtered.map((v, i) => (
+                <CompactRow
+                  key={`${v.category}:${v.id}`}
+                  v={v}
+                  index={i}
+                  onPlay={() => setActiveId(`${v.category}:${v.id}`)}
+                  onRemove={() => setConfirmId(`${v.category}:${v.id}`)}
+                  onToggleWatched={() => toggleWatched(`${v.category}:${v.id}`)}
+                />
+              ))}
+            </div>
+          )}
+          </main>
+
+          {/* Bulk paste modal */}
+        <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
+          <DialogContent className="rounded-2xl shadow-2xl sm:max-w-xl">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <ClipboardPaste className="h-5 w-5" /> Bulk add
+              </DialogTitle>
+              <DialogDescription>
+                Paste multiple YouTube links separated by commas, spaces or new lines.
+                They'll be sorted into videos, shorts, channels or posts automatically.
+              </DialogDescription>
+            </DialogHeader>
+            <Textarea
+              placeholder="https://youtu.be/…, https://youtube.com/shorts/…, https://youtube.com/@handle, https://youtube.com/post/…"
+              value={bulk}
+              onChange={(e) => setBulk(e.target.value)}
+              rows={6}
+              className="resize-none rounded-xl"
+            />
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" size="sm" className="rounded-full" onClick={() => setBulkOpen(false)}>
+                Cancel
+              </Button>
+              <Button size="sm" className="rounded-full shadow-md" onClick={handleAddBulk} disabled={loading || !bulk.trim()}>
+                Import all
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <AlertDialog open={!!confirmId} onOpenChange={(o) => !o && setConfirmId(null)}>
+          <AlertDialogContent className="rounded-2xl">
+            <AlertDialogHeader>
+              <AlertDialogTitle>Delete this item?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will remove it from your saved list. This cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="rounded-full">Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={confirmRemove}
+                className="rounded-full bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        <Dialog open={profileOpen} onOpenChange={setProfileOpen}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Profile</DialogTitle>
+              <DialogDescription>Built by Provansh</DialogDescription>
+            </DialogHeader>
+            <div className="flex items-center gap-4 py-2">
+              <div className="flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary/60 text-2xl font-bold text-primary-foreground">
+                P
+              </div>
+              <div>
+                <div className="text-base font-semibold">Provansh</div>
+                <div className="text-xs text-muted-foreground">Creator of TubeDeck</div>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <a
+                href="https://x.com/provanshh"
+                target="_blank"
+                rel="noreferrer noopener"
+                className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm hover:bg-accent"
+              >
+                <span>𝕏 / Twitter</span>
+                <span className="text-xs text-muted-foreground">@provanshh</span>
+              </a>
+              <a
+                href="https://www.linkedin.com/in/provanshh/"
+                target="_blank"
+                rel="noreferrer noopener"
+                className="flex items-center justify-between rounded-md border border-border px-3 py-2 text-sm hover:bg-accent"
+              >
+                <span>LinkedIn</span>
+                <span className="text-xs text-muted-foreground">in/provanshh</span>
+              </a>
+            </div>
+          </DialogContent>
+          </Dialog>
+        </div>
+      </div>
     </div>
   );
 }
@@ -997,7 +1115,8 @@ function GalleryCard({
         )}
       </button>
       <div className="p-2.5">
-        <p className="line-clamp-2 text-xs font-medium leading-snug">{v.title}</p>
+        <p className="line-clamp-2 h-8 text-xs font-medium leading-4">{v.title}</p>
+        <div className="mt-2 border-t border-border/40" />
         <div className="mt-1.5 flex items-center justify-between gap-1 text-[11px] text-muted-foreground">
           <label className="flex min-w-0 flex-1 items-center gap-1.5 cursor-pointer">
             <Checkbox checked={v.watched} onCheckedChange={onToggleWatched} className="h-3.5 w-3.5" />
@@ -1057,8 +1176,9 @@ function ShortsCard({
         </div>
       </button>
       <div className="p-2">
-        <p className="line-clamp-2 text-xs font-medium leading-snug">{v.title}</p>
-        <div className="mt-1 flex items-center justify-between gap-1 text-[11px] text-muted-foreground">
+        <p className="line-clamp-2 h-8 text-xs font-medium leading-4">{v.title}</p>
+        <div className="mt-2 border-t border-border/40" />
+        <div className="mt-1.5 flex items-center justify-between gap-1 text-[11px] text-muted-foreground">
           <span className="truncate">{v.author}</span>
           <div className="flex items-center gap-0.5">
             <CopyButton url={v.url} className="rounded p-1 hover:bg-accent" />

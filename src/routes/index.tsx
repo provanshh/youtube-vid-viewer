@@ -51,6 +51,7 @@ export const Route = createFileRoute("/")({
 function Landing() {
   const [authOpen, setAuthOpen] = useState<null | "login" | "signup">(null);
   const [activeFeature, setActiveFeature] = useState(0);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   useEffect(() => {
     const stored = localStorage.getItem("tubedeck.theme");
@@ -67,33 +68,53 @@ function Landing() {
     return () => clearInterval(id);
   }, []);
 
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 20);
+    };
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-white overflow-x-hidden">
+    <div className="min-h-screen bg-[#0a0a0a] text-white">
       {/* Header */}
-      <header className="sticky top-0 z-30 border-b border-white/5 bg-[#0a0a0a]/80 backdrop-blur-xl">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-5 py-4">
-          <Link to="/" className="flex items-center gap-2">
-            <img src={linkeeLogo} alt="Linkee" className="h-7 w-auto invert" />
-          </Link>
-          <nav className="hidden items-center gap-8 text-sm text-white/70 md:flex">
-            <a href="#features" className="hover:text-white transition-colors">Features</a>
-            <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
-            <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
-          </nav>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setAuthOpen("login")}
-              className="rounded-full px-4 py-2 text-xs font-semibold text-white/80 transition-colors hover:text-white"
-            >
-              Log in
-            </button>
-            <button
-              onClick={() => setAuthOpen("signup")}
-              className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-xs font-semibold text-black shadow-md transition-all hover:scale-105"
-            >
-              Sign up
-            </button>
+      <header className="fixed top-0 left-0 right-0 z-40 w-full pointer-events-none">
+        <div
+          className={`w-full transition-all duration-500 ease-in-out pointer-events-none ${
+            isScrolled ? "pt-4 px-4 md:px-8" : "pt-0 px-0"
+          }`}
+        >
+          <div
+            className={`mx-auto flex w-full items-center justify-between gap-3 transition-all duration-500 ease-in-out pointer-events-auto ${
+              isScrolled
+                ? "max-w-3xl rounded-full border border-white/10 bg-black/80 backdrop-blur-xl px-6 py-2.5 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] shadow-black/50"
+                : "max-w-6xl border-b border-white/5 bg-[#0a0a0a]/80 backdrop-blur-xl px-5 py-4"
+            }`}
+          >
+            <Link to="/" className="flex items-center gap-2">
+              <img src={linkeeLogo} alt="Linkee" className="h-7 w-auto invert" />
+            </Link>
+            <nav className="hidden items-center gap-8 text-sm text-white/70 md:flex">
+              <a href="#features" className="hover:text-white transition-colors">Features</a>
+              <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
+              <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
+            </nav>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setAuthOpen("login")}
+                className="rounded-full px-4 py-2 text-xs font-semibold text-white/80 transition-colors hover:text-white"
+              >
+                Log in
+              </button>
+              <button
+                onClick={() => setAuthOpen("signup")}
+                className="inline-flex items-center gap-1.5 rounded-full bg-white px-4 py-2 text-xs font-semibold text-black shadow-md transition-all hover:scale-105"
+              >
+                Sign up
+              </button>
+            </div>
           </div>
         </div>
       </header>
