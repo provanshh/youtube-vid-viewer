@@ -1135,18 +1135,22 @@ function GalleryCard({
   onPlay,
   onRemove,
   onToggleWatched,
+  alwaysShowControls,
 }: {
   v: Video;
   onPlay: () => void;
   onRemove: () => void;
   onToggleWatched: () => void;
+  alwaysShowControls: boolean;
 }) {
   const playable = v.category === "videos" || v.category === "shorts";
+  const watchedRing = v.watched ? "ring-2 ring-emerald-500/70" : "";
   return (
-    <Card className={`group overflow-hidden rounded-2xl p-0 transition-all hover:-translate-y-0.5 hover:shadow-lg ${watchedBorder(v.watched)}`}>
+    <div className="gallery-card group flex flex-col gap-2">
+      {/* Thumbnail in its own rounded card */}
       <button
         onClick={playable ? onPlay : () => window.open(v.url, "_blank")}
-        className="relative block w-full overflow-hidden"
+        className={`relative block w-full overflow-hidden rounded-2xl bg-muted transition-transform hover:-translate-y-0.5 hover:shadow-lg ${watchedRing}`}
         style={{ aspectRatio: "16 / 9" }}
       >
         <ThumbOrFallback v={v} />
@@ -1158,15 +1162,15 @@ function GalleryCard({
           </span>
         )}
       </button>
-      <div className="p-2.5">
-        <p className="line-clamp-2 h-8 text-xs font-medium leading-4">{v.title}</p>
-        <div className="mt-2 border-t border-border/40" />
-        <div className="mt-1.5 flex items-center justify-between gap-1 text-[11px] text-muted-foreground">
+      {/* Title + author + controls — outside the thumbnail boundary, no card border */}
+      <div className="px-1">
+        <p className="line-clamp-2 text-[13px] font-semibold leading-snug text-foreground">{v.title}</p>
+        <div className="mt-1 flex items-center justify-between gap-1 text-[11px] text-muted-foreground">
           <label className="flex min-w-0 flex-1 items-center gap-1.5 cursor-pointer">
             <Checkbox checked={v.watched} onCheckedChange={onToggleWatched} className="h-3.5 w-3.5" />
             <span className="truncate">{v.author}</span>
           </label>
-          <div className="flex items-center gap-0.5">
+          <div className={`flex items-center gap-0.5 ${alwaysShowControls ? "" : "gallery-card-controls-hover"}`}>
             <CopyButton url={v.url} className="rounded p-1 hover:bg-accent" />
             <a href={v.url} target="_blank" rel="noreferrer" className="rounded p-1 hover:bg-accent" aria-label="Open">
               <ExternalLink className="h-3.5 w-3.5" />
@@ -1177,7 +1181,7 @@ function GalleryCard({
           </div>
         </div>
       </div>
-    </Card>
+    </div>
   );
 }
 
