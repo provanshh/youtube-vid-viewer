@@ -18,13 +18,13 @@ import {
   Lock,
   Palette,
   X,
+  Menu,
   Mail,
   KeyRound,
   User as UserIcon,
   type LucideIcon,
 } from "lucide-react";
 import linkeeLogo from "@/assets/linkee-logo.png";
-import fireGif from "@/assets/fire.gif";
 import CurvedLoop from "@/components/CurvedLoop";
 
 
@@ -50,29 +50,52 @@ export const Route = createFileRoute("/")({
 
 function Landing() {
   const [authOpen, setAuthOpen] = useState<null | "login" | "signup">(null);
-  const [activeFeature, setActiveFeature] = useState(0);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [carouselPosition, setCarouselPosition] = useState(FEATURES.length);
+  const [carouselTransition, setCarouselTransition] = useState(true);
+  const [carouselWidth, setCarouselWidth] = useState(0);
   const [isScrolled, setIsScrolled] = useState(false);
   const [dark, setDark] = useState(() => {
     if (typeof window === "undefined") return true;
     const stored = localStorage.getItem("tubedeck.theme");
     return stored ? stored === "dark" : true;
   });
-  const featureWindow = [
-    (activeFeature - 1 + FEATURES.length) % FEATURES.length,
-    activeFeature,
-    (activeFeature + 1) % FEATURES.length,
-  ];
+  const featureCarouselRef = useRef<HTMLDivElement>(null);
+  const featureCount = FEATURES.length;
+  const carouselItems = [...FEATURES, ...FEATURES, ...FEATURES];
+  const activeFeature = ((carouselPosition - featureCount) % featureCount + featureCount) % featureCount;
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", dark);
   }, []);
 
   useEffect(() => {
+    const updateWidth = () => {
+      setCarouselWidth(featureCarouselRef.current?.clientWidth ?? 0);
+    };
+    updateWidth();
+    window.addEventListener("resize", updateWidth);
+    return () => window.removeEventListener("resize", updateWidth);
+  }, []);
+
+  useEffect(() => {
     const id = setInterval(() => {
-      setActiveFeature((i) => (i + 1) % FEATURES.length);
+      setCarouselPosition((position) => position + 1);
     }, 2600);
     return () => clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    if (carouselPosition < featureCount * 2) return;
+    const timeout = window.setTimeout(() => {
+      setCarouselTransition(false);
+      setCarouselPosition(featureCount);
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setCarouselTransition(true));
+      });
+    }, 700);
+    return () => window.clearTimeout(timeout);
+  }, [carouselPosition, featureCount]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -93,7 +116,7 @@ function Landing() {
           }`}
         >
           <div
-            className={`mx-auto flex w-full items-center justify-between gap-3 transition-all duration-500 ease-in-out pointer-events-auto ${
+            className={`relative mx-auto flex w-full items-center justify-between gap-3 transition-all duration-500 ease-in-out pointer-events-auto ${
               isScrolled
                 ? "max-w-3xl rounded-full border border-white/10 bg-black/75 backdrop-blur-3xl px-6 py-2.5 shadow-[0_8px_32px_0_rgba(0,0,0,0.37)] shadow-black/50"
                 : "max-w-6xl rounded-none border-0 bg-black/35 text-white backdrop-blur-3xl px-6 py-3 shadow-[0_8px_32px_rgba(0,0,0,0.2)]"
@@ -108,42 +131,63 @@ function Landing() {
               <a href="#pricing" className="hover:text-white transition-colors">Pricing</a>
               <a href="#faq" className="hover:text-white transition-colors">FAQ</a>
             </nav>
-            <div className="flex items-center gap-2">
+            <div className="hidden items-center gap-2 md:flex">
               <button
                 onClick={() => setAuthOpen("login")}
-                className="rounded-full px-5 py-2.5 text-sm font-semibold text-white/80 transition-colors hover:text-white"
+                className="rounded-full bg-white px-4 py-1.5 text-xs font-semibold text-black transition-all hover:scale-105 sm:px-4 sm:py-2.5 sm:text-sm"
               >
-                Log in
-              </button>
-              <button
-                onClick={() => setAuthOpen("signup")}
-                className="inline-flex items-center gap-1.5 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black shadow-md transition-all hover:scale-105"
-              >
-                Sign up
+                Log in / Sign up
               </button>
             </div>
+            <button
+              type="button"
+              className="inline-flex items-center justify-center bg-transparent p-0 text-white transition-colors hover:text-white/80 md:hidden"
+              onClick={() => setMenuOpen((open) => !open)}
+              aria-label="Open navigation menu"
+              aria-expanded={menuOpen}
+            >
+              <Menu className="h-6 w-6" />
+            </button>
+            {menuOpen && (
+              <div className="absolute right-4 top-full mt-3 w-[min(20rem,calc(100vw-2rem))] rounded-2xl border border-white/10 bg-black/95 p-3 shadow-2xl backdrop-blur-2xl md:hidden">
+                <div className="flex flex-col gap-1 text-sm text-white/80">
+                  <a href="#video" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-2 transition-colors hover:bg-white/5 hover:text-white">About</a>
+                  <a href="#features" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-2 transition-colors hover:bg-white/5 hover:text-white">Features</a>
+                  <a href="#pricing" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-2 transition-colors hover:bg-white/5 hover:text-white">Pricing</a>
+                  <a href="#faq" onClick={() => setMenuOpen(false)} className="rounded-xl px-3 py-2 transition-colors hover:bg-white/5 hover:text-white">FAQ</a>
+                </div>
+                <button
+                  onClick={() => {
+                    setMenuOpen(false);
+                    setAuthOpen("login");
+                  }}
+                  className="mt-3 w-full rounded-full bg-white px-4 py-2.5 text-sm font-semibold text-black transition-all hover:scale-[1.01]"
+                >
+                  Log in / Sign up
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </header>
 
       {/* Hero */}
-      <section className="relative mx-auto max-w-7xl px-5 pt-28 pb-32 text-center">
+      <section className="relative mx-auto max-w-7xl px-5 pt-24 pb-16 text-center sm:pt-28 sm:pb-32">
         <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[700px] bg-[radial-gradient(ellipse_at_center,rgba(255,255,255,0.1),transparent_60%)]" />
 
         <div className="animate-fade-in inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-5 py-2 text-sm text-white/80 backdrop-blur-xl">
-          <img src={fireGif} alt="" className="h-5 w-5" />
           Introducing Linkee — Tame your YouTube
         </div>
 
         <h1
-          className="mt-10 animate-fade-in text-7xl font-bold tracking-tight sm:text-6xl md:text-7xl bg-gradient-to-b from-white via-white to-white/35 bg-clip-text text-transparent leading-[1.02]"
+          className="mt-10 animate-fade-in text-4xl font-bold tracking-tight leading-[1.05] bg-gradient-to-b from-white via-white to-white/35 bg-clip-text text-transparent sm:text-6xl md:text-7xl"
           style={{ animationDelay: "0.1s", animationFillMode: "both" }}
         >
           Your YouTube, organized<br />beautifully in one place.
         </h1>
 
         <p
-          className="mx-auto mt-8 max-w-3xl animate-fade-in text-lg text-white/60 sm:text-xl"
+          className="mx-auto mt-8 hidden max-w-3xl animate-fade-in text-lg text-white/60 sm:block sm:text-xl"
           style={{ animationDelay: "0.2s", animationFillMode: "both" }}
         >
           Paste links to videos, shorts, channels and community posts. Watch in theatre mode,
@@ -171,7 +215,7 @@ function Landing() {
 
         {/* Curved marquee */}
         <div
-          className="mt-0 animate-fade-in"
+          className="mt-5 animate-fade-in sm:mt-0"
           style={{ animationDelay: "0.35s", animationFillMode: "both" }}
         >
           <CurvedLoop
@@ -185,7 +229,7 @@ function Landing() {
         {/* Hero video */}
         <div
           id="video"
-          className="mx-auto mt-46 max-w-6xl animate-fade-in"
+          className="mx-auto mt-24 max-w-6xl animate-fade-in sm:mt-46"
           style={{ animationDelay: "0.4s", animationFillMode: "both" }}
         >
           <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-3 shadow-2xl backdrop-blur">
@@ -204,55 +248,67 @@ function Landing() {
 
 
       {/* Features */}
-      <section id="features" className="mx-auto max-w-7xl px-5 py-12">
+      <section id="features" className="mx-auto max-w-7xl px-5 py-8 sm:py-12">
         <div className="text-center">
-          <h2 className="bg-gradient-to-b from-white to-white/50 bg-clip-text text-5xl font-bold tracking-tight text-transparent sm:text-6xl">
+          <h2 className="bg-gradient-to-b from-white to-white/50 bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-6xl">
             More and more...
           </h2>
           <p className="mx-auto mt-5 max-w-2xl text-lg text-white/60">
             Every tool you need to keep your watchlist sane.
           </p>
         </div>
-        <div className="mt-12 overflow-visible px-0 sm:px-4 lg:px-10">
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.12fr)_minmax(0,1fr)] md:items-stretch md:gap-6 lg:gap-8">
-            {featureWindow.map((featureIndex, slotIndex) => {
-              const f = FEATURES[featureIndex];
-              const Icon = f.icon;
-              const isActive = slotIndex === 1;
-              const slotMotion =
-                slotIndex === 0
-                  ? "md:translate-x-2 md:rotate-[-1deg]"
-                  : slotIndex === 2
-                    ? "md:-translate-x-2 md:rotate-[1deg]"
-                    : "md:translate-y-0";
-              return (
-                <div
-                  key={`${featureIndex}-${slotIndex}`}
-                  className={`relative z-10 rounded-3xl border p-7 transition-all duration-700 ease-out ${slotMotion} ${
-                    isActive
-                      ? "md:-translate-y-2 md:scale-[1.06] border-white/25 bg-white/[0.08] shadow-2xl shadow-white/10"
-                      : "border-white/10 bg-white/[0.03] opacity-80 md:scale-[0.97]"
-                  }`}
-                >
+        <div className="mt-10 px-0 sm:mt-12 sm:px-4 lg:px-10">
+          <div ref={featureCarouselRef} className="overflow-hidden">
+            <div
+              className={`flex ${carouselTransition ? "transition-transform duration-700 ease-out" : ""}`}
+              style={{
+                transform: `translateX(-${
+                  carouselWidth
+                    ? carouselWidth < 768
+                      ? carouselPosition * carouselWidth
+                      : (carouselPosition - 1) * (carouselWidth / 3)
+                    : 0
+                }px)`,
+              }}
+            >
+              {carouselItems.map((f, index) => {
+                const Icon = f.icon;
+                const isActive = index === carouselPosition;
+                const itemWidth = carouselWidth ? (carouselWidth < 768 ? carouselWidth : carouselWidth / 3) : 0;
+                return (
                   <div
-                    className={`inline-flex h-11 w-11 items-center justify-center rounded-2xl transition-colors ${
-                      isActive ? "bg-white text-black" : "bg-white/10 text-white"
-                    }`}
+                    key={`${f.title}-${index}`}
+                    className="shrink-0 px-1.5 sm:px-3 lg:px-4"
+                    style={{ width: itemWidth ? `${itemWidth}px` : "100%" }}
                   >
-                    <Icon className="h-5 w-5" />
+                    <div
+                      className={`relative z-10 h-full rounded-3xl border p-4 sm:p-6 transition-all duration-700 ease-out transform-gpu ${
+                        isActive
+                          ? "border-white/25 bg-white/[0.08] shadow-2xl shadow-white/10"
+                          : "border-white/10 bg-white/[0.03] opacity-80"
+                      }`}
+                    >
+                      <div
+                        className={`inline-flex h-10 w-10 items-center justify-center rounded-2xl transition-colors ${
+                          isActive ? "bg-white text-black" : "bg-white/10 text-white"
+                        }`}
+                      >
+                        <Icon className="h-4.5 w-4.5" />
+                      </div>
+                      <h3 className="mt-4 text-base font-semibold text-white sm:mt-5 sm:text-lg">{f.title}</h3>
+                      <p className="mt-2 text-xs leading-5 text-white/60 sm:mt-3 sm:text-sm sm:leading-6">{f.desc}</p>
+                    </div>
                   </div>
-                  <h3 className="mt-5 text-lg font-semibold text-white">{f.title}</h3>
-                  <p className="mt-3 text-sm leading-6 text-white/60">{f.desc}</p>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         </div>
         <div className="mt-8 flex items-center justify-center gap-1.5">
           {FEATURES.map((_, i) => (
             <button
               key={i}
-              onClick={() => setActiveFeature(i)}
+              onClick={() => setCarouselPosition(featureCount + i)}
               aria-label={`Go to feature ${i + 1}`}
               className={`rounded-full transition-all ${
                 i === activeFeature
@@ -267,20 +323,20 @@ function Landing() {
 
 
       {/* Pricing */}
-      <section id="pricing" className="mx-auto max-w-7xl px-5 py-28">
+      <section id="pricing" className="mx-auto max-w-7xl px-5 py-16 sm:py-28">
         <div className="text-center">
-          <h2 className="bg-gradient-to-b from-white to-white/50 bg-clip-text text-5xl font-bold tracking-tight text-transparent sm:text-6xl">
+          <h2 className="bg-gradient-to-b from-white to-white/50 bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-6xl">
             Simple, honest pricing
           </h2>
-          <p className="mx-auto mt-5 max-w-2xl text-lg text-white/60">
+          <p className="mx-auto mt-4 max-w-2xl text-base text-white/60 sm:mt-5 sm:text-lg">
             Start free. Upgrade when you want more power.
           </p>
         </div>
-        <div className="mt-16 grid gap-6 md:grid-cols-3">
+        <div className="mt-10 grid gap-4 md:mt-16 md:grid-cols-3 md:gap-6">
           {PLANS.map((p, i) => (
             <div
               key={p.name}
-              className={`relative rounded-2xl border p-7 transition-all hover:-translate-y-1 ${
+              className={`relative rounded-2xl border p-5 transition-all hover:-translate-y-1 sm:p-7 ${
                 p.featured
                   ? "border-white/30 bg-gradient-to-b from-white/[0.08] to-white/[0.02]"
                   : "border-white/10 bg-white/[0.03]"
@@ -288,30 +344,30 @@ function Landing() {
               style={{ animation: `fade-in 0.5s ease-out ${i * 0.1}s both` }}
             >
               {p.featured && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-wider text-black">
+                <div className="absolute -top-2.5 left-1/2 -translate-x-1/2 rounded-full bg-white px-2.5 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-black sm:-top-3 sm:px-3 sm:py-1 sm:text-[10px]">
                   Most popular
                 </div>
               )}
-              <div className="flex items-center gap-2 text-sm text-white/60">
+              <div className="flex items-center gap-2 text-xs text-white/60 sm:text-sm">
                 {p.icon}
                 {p.name}
               </div>
-              <div className="mt-4 flex items-baseline gap-1">
-                <span className="text-5xl font-bold text-white">{p.price}</span>
-                {p.period && <span className="text-sm text-white/50">/{p.period}</span>}
+              <div className="mt-3 flex items-baseline gap-1 sm:mt-4">
+                <span className="text-4xl font-bold text-white sm:text-5xl">{p.price}</span>
+                {p.period && <span className="text-xs text-white/50 sm:text-sm">/{p.period}</span>}
               </div>
-              <p className="mt-2 text-sm text-white/60">{p.tagline}</p>
-              <ul className="mt-6 space-y-2.5">
+              <p className="mt-2 text-xs text-white/60 sm:text-sm">{p.tagline}</p>
+              <ul className="mt-4 space-y-2 sm:mt-6 sm:space-y-2.5">
                 {p.features.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-white/80">
-                    <Check className="mt-0.5 h-4 w-4 shrink-0 text-emerald-400" />
+                  <li key={f} className="flex items-start gap-2 text-xs text-white/80 sm:text-sm">
+                    <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-emerald-400 sm:h-4 sm:w-4" />
                     <span>{f}</span>
                   </li>
                 ))}
               </ul>
               <Link
                 to="/app"
-                className={`mt-7 flex items-center justify-center gap-1.5 rounded-full px-4 py-2.5 text-sm font-semibold transition-all hover:scale-[1.02] ${
+                className={`mt-5 flex items-center justify-center gap-1.5 rounded-full px-4 py-2 text-xs font-semibold transition-all hover:scale-[1.02] sm:mt-7 sm:py-2.5 sm:text-sm ${
                   p.featured
                     ? "bg-white text-black"
                     : "border border-white/15 bg-white/5 text-white hover:bg-white/10"
@@ -325,9 +381,9 @@ function Landing() {
       </section>
 
       {/* FAQ */}
-      <section id="faq" className="mx-auto max-w-4xl px-5 py-15">
+      <section id="faq" className="mx-auto max-w-4xl px-5 py-12 sm:py-15">
         <div className="text-center">
-          <h2 className="bg-gradient-to-b from-white to-white/50 bg-clip-text text-5xl font-bold tracking-tight text-transparent sm:text-6xl">
+          <h2 className="bg-gradient-to-b from-white to-white/50 bg-clip-text text-4xl font-bold tracking-tight text-transparent sm:text-6xl">
             Frequently asked
           </h2>
           <p className="mx-auto mt-5 max-w-2xl text-lg text-white/60">
@@ -343,7 +399,7 @@ function Landing() {
 
       {/* Footer */}
       <footer className="border-t border-white/10 px-5 pb-10 pt-16">
-        <div className="mx-auto grid max-w-6xl gap-10 sm:grid-cols-2 md:grid-cols-4">
+        <div className="mx-auto hidden max-w-6xl gap-10 sm:grid sm:grid-cols-2 md:grid-cols-4">
           <div>
             <div className="flex items-center gap-2">
               <img src={linkeeLogo} alt="Linkee" className="h-6 w-auto invert" />
@@ -374,7 +430,7 @@ function Landing() {
           </div>
           <div>
             <div className="text-sm font-semibold text-white">Product</div>
-            <ul className="mt-4 space-y-2.5 text-sm text-white/60">
+            <ul className="mt-3 space-y-2 text-xs text-white/60 sm:mt-4 sm:space-y-2.5 sm:text-sm">
               <li><a href="#features" className="hover:text-white">Features</a></li>
               <li><a href="#pricing" className="hover:text-white">Pricing</a></li>
               <li><Link to="/app" className="hover:text-white">Open app</Link></li>
@@ -382,16 +438,50 @@ function Landing() {
           </div>
           <div>
             <div className="text-sm font-semibold text-white">Company</div>
-            <ul className="mt-4 space-y-2.5 text-sm text-white/60">
+            <ul className="mt-3 space-y-2 text-xs text-white/60 sm:mt-4 sm:space-y-2.5 sm:text-sm">
               <li><a href="mailto:vs.vansh19@gmail.com" className="hover:text-white">Contact</a></li>
               <li><a href="#faq" className="hover:text-white">FAQ</a></li>
             </ul>
           </div>
           <div>
             <div className="text-sm font-semibold text-white">Legal</div>
-            <ul className="mt-4 space-y-2.5 text-sm text-white/60">
+            <ul className="mt-3 space-y-2 text-xs text-white/60 sm:mt-4 sm:space-y-2.5 sm:text-sm">
               <li><a href="#" className="hover:text-white">Privacy Policy</a></li>
               <li><a href="#" className="hover:text-white">Terms of Service</a></li>
+            </ul>
+          </div>
+        </div>
+        <div className="mx-auto max-w-6xl sm:hidden">
+          <div>
+            <div className="flex items-center gap-2">
+              <img src={linkeeLogo} alt="Linkee" className="h-6 w-auto invert" />
+            </div>
+            <p className="mt-3 max-w-xs text-xs leading-5 text-white/60">
+              Linkee keeps your YouTube videos, shorts, channels and posts beautifully organized in one calm dashboard.
+            </p>
+          </div>
+        </div>
+        <div className="mx-auto mt-6 grid max-w-6xl grid-cols-3 gap-3 sm:hidden">
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-white">Product</div>
+            <ul className="mt-2 space-y-1.5 text-[10px] leading-4 text-white/60">
+              <li><a href="#features" className="hover:text-white">Features</a></li>
+              <li><a href="#pricing" className="hover:text-white">Pricing</a></li>
+              <li><Link to="/app" className="hover:text-white">Open app</Link></li>
+            </ul>
+          </div>
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-white">Company</div>
+            <ul className="mt-2 space-y-1.5 text-[10px] leading-4 text-white/60">
+              <li><a href="mailto:vs.vansh19@gmail.com" className="hover:text-white">Contact</a></li>
+              <li><a href="#faq" className="hover:text-white">FAQ</a></li>
+            </ul>
+          </div>
+          <div>
+            <div className="text-[11px] font-semibold uppercase tracking-wide text-white">Legal</div>
+            <ul className="mt-2 space-y-1.5 text-[10px] leading-4 text-white/60">
+              <li><a href="#" className="hover:text-white">Privacy</a></li>
+              <li><a href="#" className="hover:text-white">Terms</a></li>
             </ul>
           </div>
         </div>

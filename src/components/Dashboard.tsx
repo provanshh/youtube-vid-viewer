@@ -175,6 +175,8 @@ export function Dashboard() {
   const [sortByChannel, setSortByChannel] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [trackerOpen, setTrackerOpen] = useState(false);
+  const [trackerSelection, setTrackerSelection] = useState<null | { title: string; items: Video[] }>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const pasteInputRef = useRef<HTMLInputElement | null>(null);
@@ -211,7 +213,7 @@ export function Dashboard() {
         searchInputRef.current?.focus();
         return;
       }
-      if (k === "v") {
+      if (k === "b") {
         const modes: ViewMode[] = ["gallery", "tile", "list", "compact"];
         setView((prev) => {
           const ix = modes.indexOf(prev);
@@ -403,6 +405,24 @@ export function Dashboard() {
     return c;
   }, [videos]);
 
+  const trackerStats = useMemo(() => {
+    const watched = videos.filter((v) => v.watched).length;
+    const left = videos.length - watched;
+    const watchedPct = videos.length ? Math.round((watched / videos.length) * 100) : 0;
+    return {
+      total: videos.length,
+      watched,
+      left,
+      watchedPct,
+      byCategory: [
+        { key: "videos" as Category, label: "Videos", count: counts.videos },
+        { key: "shorts" as Category, label: "Shorts", count: counts.shorts },
+        { key: "channel" as Category, label: "Channels", count: counts.channel },
+        { key: "posts" as Category, label: "Posts", count: counts.posts },
+      ],
+    };
+  }, [videos, counts]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     let inCat = videos.filter((v) => v.category === category);
@@ -427,6 +447,27 @@ export function Dashboard() {
     }
     return result;
   }, [videos, search, category, eyeFilter, sortByChannel]);
+
+  const openTracker = () => {
+    setTrackerOpen(true);
+    setTrackerSelection(null);
+    setSidebarOpen(false);
+  };
+
+  const openCategory = (value: Category) => {
+    setTrackerOpen(false);
+    setTrackerSelection(null);
+    setCategory(value);
+    setSidebarOpen(false);
+  };
+
+  const openTrackerSelection = (title: string, items: Video[]) => {
+    setTrackerOpen(true);
+    setTrackerSelection({ title, items });
+    setSidebarOpen(false);
+  };
+
+  const closeTrackerSelection = () => setTrackerSelection(null);
 
   // If user pastes URL into search of different category, auto-switch
   useEffect(() => {
@@ -552,10 +593,10 @@ export function Dashboard() {
     <div className="flex flex-col h-screen overflow-hidden bg-background text-foreground">
       {/* ── Full-width Top Navbar ── */}
       <header className="z-40 w-full shrink-0 border-b border-sky-100 bg-gradient-to-r from-sky-50 via-white to-indigo-50 text-slate-900 shadow-[0_8px_20px_rgba(14,165,233,0.08)] dark:border-indigo-400/20 dark:bg-gradient-to-r dark:from-slate-950 dark:via-indigo-950/80 dark:to-purple-950/80 dark:text-slate-100 dark:shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+        <div className="flex flex-col gap-2 px-3 py-2 md:flex-row md:flex-wrap md:items-center md:justify-between">
 
           {/* Left: Mobile Menu + Home + View Buttons */}
-          <div className="flex items-center gap-1.5">
+          <div className="flex w-full items-center gap-1.5 md:order-1 md:w-auto">
             <button
               onClick={() => setSidebarOpen(true)}
               className="flex h-8 w-8 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm hover:bg-slate-50 hover:border-slate-300 transition-all md:hidden dark:border-indigo-300/20 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/15 dark:hover:border-indigo-200/35"
@@ -570,7 +611,19 @@ export function Dashboard() {
             >
               <Home className="h-4 w-4" />
             </Link>
-            <div className="inline-flex items-center rounded-full border border-sky-200 bg-white/90 p-0.5 shadow-sm dark:border-indigo-300/20 dark:bg-white/10">
+            <div className="flex min-w-0 flex-1 md:hidden">
+              <div className="relative w-full group">
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-300/75" />
+                <Input
+                  ref={searchInputRef}
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search titles..."
+                  className="h-9 w-full rounded-full border border-sky-200 bg-white pl-10 pr-3 text-sm font-medium text-slate-800 placeholder:text-slate-400 shadow-sm focus:bg-white focus:border-sky-300 focus:ring-0 focus-visible:ring-0 outline-none transition-all dark:border-indigo-300/20 dark:bg-white/10 dark:text-slate-100 dark:placeholder:text-slate-300/65 dark:focus:border-indigo-300 dark:focus:bg-white/15"
+                />
+              </div>
+            </div>
+            <div className="inline-flex shrink-0 items-center rounded-full border border-sky-200 bg-white/90 p-0.5 shadow-sm dark:border-indigo-300/20 dark:bg-white/10 md:ml-0">
               <ViewBtn icon={<LayoutDashboard className="h-3.5 w-3.5" />} label="Gallery" active={view === "gallery"} onClick={() => setView("gallery")} />
               <ViewBtn icon={<Grid className="h-3.5 w-3.5" />} label="Tile" active={view === "tile"} onClick={() => setView("tile")} />
               <ViewBtn icon={<ListIcon className="h-3.5 w-3.5" />} label="List" active={view === "list"} onClick={() => setView("list")} />
@@ -579,7 +632,7 @@ export function Dashboard() {
           </div>
 
           {/* Center: Search */}
-              <div className="flex flex-1 max-w-xs md:max-w-md mx-2">
+          <div className="order-2 hidden w-full flex-1 max-w-none md:mx-2 md:flex md:max-w-md md:order-2">
             <div className="relative w-full group">
               <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-300/75" />
               <Input
@@ -593,8 +646,8 @@ export function Dashboard() {
           </div>
 
           {/* Right: Add control + Settings */}
-          <div className="flex items-center gap-1.5">
-            <div className="inline-flex items-center rounded-full border border-sky-200 bg-white/90 px-1 py-0.5 shadow-sm gap-0.5 dark:border-indigo-300/20 dark:bg-white/10">
+          <div className="order-3 flex w-full items-center gap-1.5 md:w-auto md:order-3 md:justify-end">
+            <div className="inline-flex flex-1 items-center rounded-full border border-sky-200 bg-white/90 px-1 py-0.5 shadow-sm gap-0.5 dark:border-indigo-300/20 dark:bg-white/10 md:flex-none">
               {/* Add single link — always-visible input, auto-submits on paste */}
               <Plus className="h-3.5 w-3.5 ml-1 shrink-0 text-slate-500 dark:text-slate-300/80" />
               <Input
@@ -614,12 +667,12 @@ export function Dashboard() {
                 }}
                 placeholder="Paste YouTube link…"
                 disabled={loading}
-                className="h-7 w-32 sm:w-44 rounded-full border-0 bg-transparent px-2 text-xs text-slate-700 shadow-none focus-visible:ring-0 placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-300/65"
+                className="h-7 min-w-0 flex-1 rounded-full border-0 bg-transparent px-2 text-xs text-slate-700 shadow-none focus-visible:ring-0 placeholder:text-slate-400 dark:text-slate-100 dark:placeholder:text-slate-300/65 md:w-44 md:flex-none"
               />
               {/* Bulk add */}
               <button
                 onClick={() => setBulkOpen(true)}
-                className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium text-slate-700 hover:bg-sky-100 hover:text-sky-800 transition-all dark:text-slate-100 dark:hover:bg-white/15 dark:hover:text-white"
+                className="inline-flex items-center rounded-full px-2 py-1 text-xs font-medium text-slate-700 hover:bg-sky-100 hover:text-sky-800 transition-all dark:text-slate-100 dark:hover:bg-white/15 dark:hover:text-white shrink-0"
               >
                 <ClipboardPaste className="h-3.5 w-3.5" />
                 <span className="ml-1">Bulk</span>
@@ -665,16 +718,23 @@ export function Dashboard() {
           <div className="w-56 bg-gradient-to-b from-sky-50 via-white to-indigo-50 p-4 flex flex-col justify-between border-r border-sky-200 shadow-xl ring-1 ring-sky-200/70 animate-in slide-in-from-left duration-200 h-full dark:bg-gradient-to-b dark:from-slate-950 dark:via-indigo-950/80 dark:to-indigo-950/80 dark:border-indigo-300/20 dark:ring-indigo-300/20">
             <div className="flex flex-col gap-4">
               <div className="flex items-center justify-between">
-                <span className="font-bold text-base tracking-tight bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">TubeDeck</span>
+                <span className="font-bold text-base tracking-tight bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 bg-clip-text text-transparent">Linkee</span>
                 <button onClick={() => setSidebarOpen(false)} className="rounded-full p-1 hover:bg-accent text-muted-foreground" aria-label="Close menu">
                   <X className="h-4 w-4" />
                 </button>
               </div>
               <div className="flex flex-col gap-1">
+                <button
+                  onClick={openTracker}
+                  className={`mb-1 flex items-center justify-between w-full rounded-lg px-3 py-2 text-xs font-semibold transition-all ${trackerOpen ? "bg-foreground text-background" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"}`}
+                >
+                  <span className="flex items-center gap-2"><LayoutDashboard className="h-4 w-4" />Tracker</span>
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${trackerOpen ? "bg-background/20 text-background" : "bg-foreground/5 text-muted-foreground"}`}>{videos.length}</span>
+                </button>
                 {CATEGORIES.map((c) => {
                   const isActive = category === c.value;
                   return (
-                    <button key={c.value} onClick={() => { setCategory(c.value); setSidebarOpen(false); }}
+                    <button key={c.value} onClick={() => openCategory(c.value)}
                       className={`flex items-center justify-between w-full rounded-lg px-3 py-2 text-xs font-semibold transition-all ${isActive ? "bg-foreground text-background" : "text-muted-foreground hover:bg-foreground/5 hover:text-foreground"
                         }`}>
                       <span className="flex items-center gap-2">{c.icon}{c.label}</span>
@@ -715,12 +775,32 @@ export function Dashboard() {
         <aside className="hidden md:flex w-[64px] shrink-0 flex-col items-center justify-between border-r border-sky-200 bg-gradient-to-b from-sky-50 via-white to-indigo-50 py-2 h-full overflow-hidden shadow-lg ring-1 ring-sky-200/70 dark:border-indigo-300/20 dark:bg-gradient-to-b dark:from-slate-950 dark:via-indigo-950/80 dark:to-indigo-950/80 dark:ring-indigo-300/20">
           {/* Top: Category icons */}
           <div className="flex flex-col items-center gap-0.5">
+            <button
+              onClick={openTracker}
+              className={`group relative mb-1 flex flex-col items-center justify-center w-[52px] h-[48px] rounded-lg transition-colors duration-150 ${trackerOpen
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground dark:text-slate-200 hover:bg-accent/60 dark:hover:bg-white/10 hover:text-foreground dark:hover:text-slate-100"
+                }`}
+              aria-label="Tracker"
+            >
+              {trackerOpen && (
+                <span className="absolute left-0 top-1/2 -translate-y-1/2 h-5 w-[2px] rounded-r-full bg-primary" />
+              )}
+              <div className="relative flex items-center justify-center">
+                <LayoutDashboard className="h-4 w-4" />
+                {videos.length > 0 && (
+                  <span className={`absolute -top-1 -right-2 flex h-3.5 min-w-3.5 items-center justify-center rounded-full text-[9px] font-semibold leading-none px-1 ${trackerOpen ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground dark:bg-transparent dark:text-slate-300"
+                    }`}>{videos.length}</span>
+                )}
+              </div>
+              <span className="text-[9px] mt-1 font-medium tracking-tight leading-none">Tracker</span>
+            </button>
             {CATEGORIES.map((c) => {
               const isActive = category === c.value;
               return (
                 <button
                   key={c.value}
-                  onClick={() => setCategory(c.value)}
+                  onClick={() => openCategory(c.value)}
                   className={`group relative flex flex-col items-center justify-center w-[52px] h-[48px] rounded-lg transition-colors duration-150 ${isActive
                       ? "bg-primary/10 text-primary"
                       : "text-muted-foreground dark:text-slate-200 hover:bg-accent/60 dark:hover:bg-white/10 hover:text-foreground dark:hover:text-slate-100"
@@ -963,7 +1043,17 @@ export function Dashboard() {
 
             <div className={isSplit ? "flex-1 w-full min-w-0" : "w-full"}>
               {/* Results */}
-            {filtered.length === 0 ? (
+            {trackerOpen ? (
+              <TrackerPanel
+                stats={trackerStats}
+                videos={videos}
+                onOpenCollection={openTrackerSelection}
+                onClose={() => {
+                  setTrackerOpen(false);
+                  setTrackerSelection(null);
+                }}
+              />
+            ) : filtered.length === 0 ? (
               <Card className="flex flex-col items-center justify-center gap-2 rounded-2xl p-12 text-center shadow-sm">
                 <Youtube className="h-10 w-10 text-muted-foreground" />
                 <p className="text-sm font-medium">Nothing here yet</p>
@@ -1051,6 +1141,65 @@ export function Dashboard() {
             )}
             </div>
           </main>
+
+          <Dialog open={!!trackerSelection} onOpenChange={(open) => !open && closeTrackerSelection()}>
+            <DialogContent className="max-w-3xl overflow-hidden rounded-3xl border border-sky-200/70 bg-gradient-to-br from-white via-sky-50 to-indigo-50 p-0 shadow-2xl dark:border-indigo-300/20 dark:from-slate-950 dark:via-indigo-950/80 dark:to-indigo-950/90 sm:max-w-4xl">
+                <div className="border-b border-sky-100 px-5 py-4 dark:border-white/10 sm:px-6">
+                <div>
+                    <DialogTitle className="flex items-center gap-2 text-2xl font-bold text-slate-900 dark:text-white">
+                      <span>{trackerSelection?.title ?? "Videos"}</span>
+                      <span className="rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-semibold text-sky-700 dark:bg-white/10 dark:text-slate-100">
+                        {trackerSelection?.items.length ?? 0}
+                      </span>
+                    </DialogTitle>
+                    <DialogDescription className="mt-1 text-sm text-slate-600 dark:text-slate-300/80">
+                      Videos in this collection
+                    </DialogDescription>
+                </div>
+              </div>
+
+              <div className="max-h-[70vh] overflow-auto px-4 py-4 sm:px-6">
+                {trackerSelection && trackerSelection.items.length > 0 ? (
+                  <div className="grid gap-3 sm:grid-cols-2">
+                    {trackerSelection.items.map((video) => (
+                      <button
+                        key={`${video.category}:${video.id}`}
+                        type="button"
+                        onClick={() => {
+                          setCategory(video.category);
+                          setActiveId(`${video.category}:${video.id}`);
+                          setTrackerSelection(null);
+                        }}
+                        className="group flex items-stretch gap-3 rounded-2xl border border-sky-100 bg-white/80 p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-white/10 dark:bg-white/5"
+                      >
+                        <div className="relative h-20 w-32 shrink-0 overflow-hidden rounded-xl bg-slate-200 dark:bg-white/10">
+                          <ThumbOrFallback v={video} />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="rounded-full bg-slate-900/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-700 dark:bg-white/10 dark:text-slate-100">
+                              {video.category}
+                            </span>
+                            <span className={`rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${video.watched ? "bg-emerald-500/10 text-emerald-700 dark:text-emerald-300" : "bg-amber-500/10 text-amber-700 dark:text-amber-300"}`}>
+                              {video.watched ? "Watched" : "Left"}
+                            </span>
+                          </div>
+                          <p className="mt-2 truncate text-sm font-semibold text-slate-900 dark:text-white">{video.title}</p>
+                          <p className="truncate text-xs text-slate-600 dark:text-slate-300/75">{video.author}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-sky-200/80 bg-white/70 px-6 py-10 text-center dark:border-white/10 dark:bg-white/5">
+                    <Youtube className="h-10 w-10 text-slate-400 dark:text-slate-300/75" />
+                    <p className="text-sm font-medium text-slate-900 dark:text-white">No videos in this collection yet</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-300/75">Add a few links and this tracker will populate automatically.</p>
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
 
           {/* Bulk paste modal */}
           <Dialog open={bulkOpen} onOpenChange={setBulkOpen}>
@@ -1159,7 +1308,7 @@ export function Dashboard() {
                 <div className="flex items-center gap-3"><kbd className="rounded-md bg-muted/30 px-2 py-1 text-xs font-semibold">P</kbd><span>Download PDF</span></div>
                 <div className="flex items-center gap-3"><kbd className="rounded-md bg-muted/30 px-2 py-1 text-xs font-semibold">T</kbd><span>Toggle theme</span></div>
                 <div className="flex items-center gap-3"><kbd className="rounded-md bg-muted/30 px-2 py-1 text-xs font-semibold">S</kbd><span>Focus search</span></div>
-                <div className="flex items-center gap-3"><kbd className="rounded-md bg-muted/30 px-2 py-1 text-xs font-semibold">V</kbd><span>Cycle view modes</span></div>
+                <div className="flex items-center gap-3"><kbd className="rounded-md bg-muted/30 px-2 py-1 text-xs font-semibold">B</kbd><span>Cycle view modes</span></div>
                 <div className="flex items-center gap-3"><kbd className="rounded-md bg-muted/30 px-2 py-1 text-xs font-semibold">H</kbd><span>Go home</span></div>
               </div>
             </DialogContent>
@@ -1294,6 +1443,127 @@ function ViewBtn({
       {icon}
       <span className="view-btn-label">{label}</span>
     </button>
+  );
+}
+
+function TrackerPanel({
+  stats,
+  videos,
+  onOpenCollection,
+  onClose,
+}: {
+  stats: {
+    total: number;
+    watched: number;
+    left: number;
+    watchedPct: number;
+    byCategory: { key: Category; label: string; count: number }[];
+  };
+  videos: Video[];
+  onOpenCollection: (title: string, items: Video[]) => void;
+  onClose: () => void;
+}) {
+  return (
+    <div className="space-y-4">
+      <Card className="rounded-2xl border border-sky-200/70 bg-gradient-to-br from-sky-50 via-white to-indigo-50 p-4 shadow-sm dark:border-indigo-300/20 dark:from-slate-950 dark:via-indigo-950/60 dark:to-indigo-950/80">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h3 className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">Your library at a glance</h3>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-300/80">A quick snapshot of saved, watched and what is still left to watch.</p>
+          </div>
+        </div>
+
+        <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-200/80 dark:bg-white/10">
+          <div
+            className="h-full rounded-full bg-gradient-to-r from-emerald-500 via-cyan-500 to-indigo-500 transition-all"
+            style={{ width: `${stats.watchedPct}%` }}
+          />
+        </div>
+        <div className="mt-2 flex items-center justify-between text-xs text-slate-600 dark:text-slate-300/75">
+          <span>{stats.watchedPct}% watched</span>
+          <span>{stats.watched} watched of {stats.total} saved</span>
+        </div>
+      </Card>
+
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Card
+          role="button"
+          tabIndex={0}
+          onClick={() => onOpenCollection("Saved videos", videos)}
+          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onOpenCollection("Saved videos", videos)}
+          className="cursor-pointer rounded-2xl border border-sky-300/90 bg-white p-4 shadow-[0_10px_28px_rgba(15,23,42,0.12)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(15,23,42,0.16)] dark:border-border/80 dark:bg-card/95 dark:shadow-sm dark:hover:shadow-md"
+        >
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">Saved</p>
+          <p className="mt-2 text-3xl font-bold text-foreground">{stats.total}</p>
+          <p className="mt-1 text-sm text-muted-foreground">Tap to see every saved item</p>
+        </Card>
+        <Card
+          role="button"
+          tabIndex={0}
+          onClick={() => onOpenCollection("Watched videos", videos.filter((video) => video.watched))}
+          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onOpenCollection("Watched videos", videos.filter((video) => video.watched))}
+          className="cursor-pointer rounded-2xl border border-emerald-300/90 bg-emerald-50/80 p-4 shadow-[0_10px_28px_rgba(16,185,129,0.14)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(16,185,129,0.18)] dark:border-emerald-500/20 dark:bg-emerald-500/10 dark:shadow-sm dark:hover:shadow-md"
+        >
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700 dark:text-emerald-300">Watched</p>
+          <p className="mt-2 text-3xl font-bold text-emerald-700 dark:text-emerald-300">{stats.watched}</p>
+          <p className="mt-1 text-sm text-emerald-700/80 dark:text-emerald-200/75">Tap to review watched items</p>
+        </Card>
+        <Card
+          role="button"
+          tabIndex={0}
+          onClick={() => onOpenCollection("Left to watch", videos.filter((video) => !video.watched))}
+          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onOpenCollection("Left to watch", videos.filter((video) => !video.watched))}
+          className="cursor-pointer rounded-2xl border border-amber-300/90 bg-amber-50/80 p-4 shadow-[0_10px_28px_rgba(245,158,11,0.14)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(245,158,11,0.18)] dark:border-amber-500/20 dark:bg-amber-500/10 dark:shadow-sm dark:hover:shadow-md"
+        >
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-700 dark:text-amber-300">Left</p>
+          <p className="mt-2 text-3xl font-bold text-amber-700 dark:text-amber-300">{stats.left}</p>
+          <p className="mt-1 text-sm text-amber-700/80 dark:text-amber-200/75">Tap to see the remaining queue</p>
+        </Card>
+        <Card
+          role="button"
+          tabIndex={0}
+          onClick={() => onOpenCollection("Library efficiency", videos)}
+          onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onOpenCollection("Library efficiency", videos)}
+          className="cursor-pointer rounded-2xl border border-sky-300/90 bg-sky-50/80 p-4 shadow-[0_10px_28px_rgba(14,165,233,0.14)] transition-all hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(14,165,233,0.18)] dark:border-indigo-300/20 dark:bg-white/10 dark:shadow-sm dark:hover:shadow-md"
+        >
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sky-700 dark:text-sky-300">Efficiency</p>
+          <p className="mt-2 text-3xl font-bold text-sky-700 dark:text-sky-300">{stats.watchedPct}%</p>
+          <p className="mt-1 text-sm text-sky-700/80 dark:text-sky-200/75">Tap for the full library view</p>
+        </Card>
+      </div>
+
+      <Card className="rounded-2xl border border-border/80 bg-card/95 p-4 shadow-sm">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h4 className="text-sm font-semibold text-foreground">Category breakdown</h4>
+            <p className="text-xs text-muted-foreground">How your saved items are distributed.</p>
+          </div>
+          <div className="text-xs text-muted-foreground">Saved items</div>
+        </div>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          {stats.byCategory.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              onClick={() => onOpenCollection(item.label, videos.filter((video) => video.category === item.key))}
+              className="rounded-2xl border border-sky-300/80 bg-white p-3 text-left shadow-[0_8px_22px_rgba(15,23,42,0.08)] transition-all hover:-translate-y-0.5 hover:shadow-[0_12px_28px_rgba(15,23,42,0.12)] dark:border-border/70 dark:bg-background/80 dark:shadow-none dark:hover:shadow-md"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-foreground">{item.label}</span>
+                <span className="text-lg font-bold text-foreground">{item.count}</span>
+              </div>
+              <div className="mt-3 h-2 overflow-hidden rounded-full bg-muted/70">
+                <div
+                  className="h-full rounded-full bg-gradient-to-r from-indigo-500 via-fuchsia-500 to-pink-500"
+                  style={{ width: `${stats.total ? Math.max(8, Math.round((item.count / Math.max(stats.total, 1)) * 100)) : 0}%` }}
+                />
+              </div>
+            </button>
+          ))}
+        </div>
+      </Card>
+
+    </div>
   );
 }
 
