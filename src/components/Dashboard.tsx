@@ -29,15 +29,14 @@ import {
 } from "@/components/ui/select";
 import {
   DropdownMenu,
+  DropdownMenuTrigger,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
-  DropdownMenuTrigger,
+  DropdownMenuItem,
 } from "@/components/ui/dropdown-menu";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Link } from "@tanstack/react-router";
-import linkeeLogo from "@/assets/linkee-logo.png";
+
 import {
   LayoutDashboard,
   List as ListIcon,
@@ -79,11 +78,7 @@ import React from "react";
 
 type EyeFilter = "all" | "viewed" | "left";
 
-<<<<<<< HEAD
-type PlayerSize = "theatre" | "fullscreen";
-=======
 type PlayerSize = "default" | "theatre" | "fullscreen";
->>>>>>> 8619a52ece4cb091f8ecff4666210f0277db165b
 type Category = "videos" | "shorts" | "channel" | "posts";
 type ViewMode = "gallery" | "list" | "compact" | "tile";
 
@@ -171,11 +166,7 @@ export function Dashboard() {
   const [view, setView] = useState<ViewMode>("gallery");
   const [loading, setLoading] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
-<<<<<<< HEAD
-  const [playerSize, setPlayerSize] = useState<PlayerSize>("theatre");
-=======
   const [playerSize, setPlayerSize] = useState<PlayerSize>("default");
->>>>>>> 8619a52ece4cb091f8ecff4666210f0277db165b
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [dark, setDark] = useState(false);
@@ -528,14 +519,6 @@ export function Dashboard() {
     }
   };
 
-<<<<<<< HEAD
-  const setPlayerMode = () => {
-    setPlayerSize("theatre");
-    if (document.fullscreenElement) {
-      document.exitFullscreen().catch(() => { });
-    }
-  };
-=======
   // Sync playerSize when user exits OS fullscreen (Esc or browser button)
   useEffect(() => {
     const onFsChange = () => {
@@ -546,7 +529,6 @@ export function Dashboard() {
     document.addEventListener("fullscreenchange", onFsChange);
     return () => document.removeEventListener("fullscreenchange", onFsChange);
   }, [playerSize]);
->>>>>>> 8619a52ece4cb091f8ecff4666210f0277db165b
 
   const downloadPdf = () => {
     const win = window.open("", "_blank");
@@ -637,13 +619,13 @@ export function Dashboard() {
             >
               <ListIcon className="h-4 w-4" />
             </button>
-            <Link
-              to="/"
+            <a
+              href="/"
               className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-sm hover:bg-sky-50 border border-sky-200 hover:scale-105 transition-transform text-slate-700 hover:text-sky-700 dark:border-indigo-300/20 dark:bg-white/10 dark:text-slate-100 dark:hover:bg-white/15 dark:hover:text-white"
               aria-label="Home"
             >
               <Home className="h-4 w-4" />
-            </Link>
+            </a>
             <div className="flex min-w-0 flex-1 md:hidden">
               <div className="relative w-full group">
                 <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400 dark:text-slate-300/75" />
@@ -937,11 +919,6 @@ export function Dashboard() {
           <main className={`mx-auto w-full ${activeId ? "max-w-none" : "max-w-7xl"} px-3 py-4 sm:px-4 ${isSplit ? "flex flex-col md:flex-row gap-4 items-start" : "space-y-4"}`}>
             {/* Player */}
             {activeId && playerEmbedSrc && (
-<<<<<<< HEAD
-              // <div className={playerSize === "theatre" ? "w-full px-3 py-6 sm:px-6 sm:py-8" : "w-full -mx-3 sm:-mx-4 -mt-4 sm:-mt-4"}>
-              //   <Card
-              //     className={`tubedeck-player overflow-hidden p-0 w-full ${playerSize === "theatre" ? "mx-auto max-w-6xl rounded-3xl border border-white/10 bg-transparent shadow-none" : "rounded-none"}`}
-=======
               <div
                 className={
                   playerSize === "theatre"
@@ -951,162 +928,150 @@ export function Dashboard() {
                 onClick={playerSize === "theatre" ? (e) => { if (e.target === e.currentTarget) setPlayerSize("default"); } : undefined}
               >
                 <Card
+                  ref={playerRef as React.Ref<HTMLDivElement>}
                   className={`tubedeck-player relative overflow-hidden p-0 flex flex-col bg-gradient-to-b from-card to-card/95 border border-border ring-1 ring-primary/10 shadow-[0_10px_40px_-12px_rgba(0,0,0,0.18)] rounded-2xl ${playerSize === "theatre" ? "mx-auto max-w-full" : "w-full mx-auto"}`}
                   style={playerSize === "theatre" ? { width: "min(100%, calc((100vh - 120px) * 16 / 9))" } : undefined}
->>>>>>> 8619a52ece4cb091f8ecff4666210f0277db165b
-                  ref={playerRef as React.Ref<HTMLDivElement>}
                 >
-                <div className="tubedeck-player-bar flex items-center justify-between gap-2 bg-gradient-to-r from-card via-card to-card/80 px-3 py-2 border-b border-border/60">
-                  <div className="flex min-w-0 items-center gap-2">
-                    <p className="truncate text-xs font-medium text-muted-foreground">Now playing</p>
-                    <NowPlayingBars />
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {/* Speed control */}
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <button
-                          aria-label="Playback speed"
-                          className="flex h-7 items-center gap-1 rounded-full border border-border bg-background px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
-                        >
-                          <span className="tabular-nums">{playbackSpeed === 1 ? "1x" : `${playbackSpeed}x`}</span>
-                        </button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end" className="w-28 rounded-xl">
-                        <DropdownMenuLabel className="text-xs">Speed</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        {SPEED_OPTIONS.map((s) => (
-                          <DropdownMenuItem
-                            key={s}
-                            onClick={() => applySpeed(s)}
-                            className={`cursor-pointer text-xs tabular-nums ${playbackSpeed === s ? "font-semibold text-primary" : ""
-                              }`}
+                  <div className="tubedeck-player-bar flex items-center justify-between gap-2 bg-gradient-to-r from-card via-card to-card/80 px-3 py-2 border-b border-border/60">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <p className="truncate text-xs font-medium text-muted-foreground">Now playing</p>
+                      <NowPlayingBars />
+                    </div>
+                    <div className="flex items-center gap-1">
+                      {/* Speed control */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            aria-label="Playback speed"
+                            className="flex h-7 items-center gap-1 rounded-full border border-border bg-background px-2.5 text-[11px] font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
                           >
-                            {s === 1 ? "1x (normal)" : `${s}x`}
-                          </DropdownMenuItem>
-                        ))}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-<<<<<<< HEAD
-                    <div className="inline-flex items-center rounded-full border border-border bg-background p-0.5">
-                      <PlayerSizeBtn icon={<Tv className="h-3.5 w-3.5" />} label="Theatre" active={playerSize === "theatre"} onClick={setPlayerMode} />
-=======
-                    <div className="inline-flex items-center rounded-full border border-border bg-background p-0.5 shadow-sm">
-                      <PlayerSizeBtn icon={<Monitor className="h-3.5 w-3.5" />} label="Default" active={playerSize === "default"} onClick={() => setPlayerSize("default")} />
-                      <PlayerSizeBtn icon={<RectangleHorizontal className="h-3.5 w-3.5" />} label="Theatre" active={playerSize === "theatre"} onClick={() => setPlayerSize("theatre")} />
->>>>>>> 8619a52ece4cb091f8ecff4666210f0277db165b
-                      <PlayerSizeBtn icon={<Maximize2 className="h-3.5 w-3.5" />} label="Full screen" active={playerSize === "fullscreen"} onClick={enterFullscreen} />
-                    </div>
-                    <CopyButton url={videos.find((v) => `${v.category}:${v.id}` === activeId)?.url ?? ""} />
-                    <a
-                      href={videos.find((v) => `${v.category}:${v.id}` === activeId)?.url}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-accent"
-                      aria-label="Open on YouTube"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5" />
-                    </a>
-                    <button
-                      onClick={() => setActiveId(null)}
-                      className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                      aria-label="Close player"
-                    >
-                      <X className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
-                </div>
-                {activeId.startsWith("shorts:") && playerSize !== "fullscreen" ? (
-                  <div className="flex w-full items-center justify-center bg-black py-4">
-                    <div className="relative flex items-center gap-3">
-                      <div
-                        className="relative overflow-hidden rounded-xl bg-black"
-                        style={{ aspectRatio: "9 / 16", height: "min(80vh, 720px)" }}
+                            <span className="tabular-nums">{playbackSpeed === 1 ? "1x" : `${playbackSpeed}x`}</span>
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-28 rounded-xl">
+                          <DropdownMenuLabel className="text-xs">Speed</DropdownMenuLabel>
+                          <DropdownMenuSeparator />
+                          {SPEED_OPTIONS.map((s) => (
+                            <DropdownMenuItem
+                              key={s}
+                              onClick={() => applySpeed(s)}
+                              className={`cursor-pointer text-xs tabular-nums ${playbackSpeed === s ? "font-semibold text-primary" : ""}`}
+                            >
+                              {s === 1 ? "1x (normal)" : `${s}x`}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                      <div className="inline-flex items-center rounded-full border border-border bg-background p-0.5 shadow-sm">
+                        <PlayerSizeBtn icon={<Monitor className="h-3.5 w-3.5" />} label="Default" active={playerSize === "default"} onClick={() => setPlayerSize("default")} />
+                        <PlayerSizeBtn icon={<RectangleHorizontal className="h-3.5 w-3.5" />} label="Theatre" active={playerSize === "theatre"} onClick={() => setPlayerSize("theatre")} />
+                        <PlayerSizeBtn icon={<Maximize2 className="h-3.5 w-3.5" />} label="Full screen" active={playerSize === "fullscreen"} onClick={enterFullscreen} />
+                      </div>
+                      <CopyButton url={videos.find((v) => `${v.category}:${v.id}` === activeId)?.url ?? ""} />
+                      <a
+                        href={videos.find((v) => `${v.category}:${v.id}` === activeId)?.url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-accent"
+                        aria-label="Open on YouTube"
                       >
-                        <iframe
-                          key={activeId}
-                          src={playerEmbedSrc}
-                          title="YouTube short"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                          className="absolute inset-0 h-full w-full"
-                        />
-                      </div>
-                      <div className="flex flex-col gap-3">
-                        <button
-                          onClick={() => {
-                            const list = videos.filter((x) => x.category === "shorts");
-                            const idx = list.findIndex((x) => `${x.category}:${x.id}` === activeId);
-                            const prev = list[idx - 1];
-                            if (prev) setActiveId(`${prev.category}:${prev.id}`);
-                          }}
-                          className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-secondary-foreground shadow hover:bg-accent disabled:opacity-40"
-                          aria-label="Previous short"
-                        >
-                          <ChevronUp className="h-5 w-5" />
-                        </button>
-                        <button
-                          onClick={() => {
-                            const list = videos.filter((x) => x.category === "shorts");
-                            const idx = list.findIndex((x) => `${x.category}:${x.id}` === activeId);
-                            const next = list[idx + 1];
-                            if (next) setActiveId(`${next.category}:${next.id}`);
-                          }}
-                          className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-secondary-foreground shadow hover:bg-accent disabled:opacity-40"
-                          aria-label="Next short"
-                        >
-                          <ChevronDown className="h-5 w-5" />
-                        </button>
-                      </div>
+                        <ExternalLink className="h-3.5 w-3.5" />
+                      </a>
+                      <button
+                        onClick={() => setActiveId(null)}
+                        className="flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                        aria-label="Close player"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   </div>
-                ) : (
-<<<<<<< HEAD
-                  <div className="w-full px-3 py-3 sm:px-4 sm:py-4">
-                    <div className="mx-auto w-full overflow-hidden rounded-3xl bg-transparent" style={{ border: playerSize === "theatre" ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(255,255,255,0.15)" }}>
-                      <div className="relative w-full overflow-hidden rounded-3xl bg-transparent" style={{ aspectRatio: "16 / 9", maxHeight: "calc(100vh - 232px)" }}>
-=======
-                  <div className="w-full bg-black">
-                    {playerSize === "fullscreen" ? (
-                      <div className="relative w-full h-screen">
-                        <iframe
-                          key={activeId}
-                          ref={iframeRef}
-                          src={playerEmbedSrc}
-                          title="YouTube player"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                          className="absolute inset-0 h-full w-full"
-                        />
-                      </div>
-                    ) : playerSize === "theatre" ? (
-                      <div className="relative w-full mx-auto" style={{ aspectRatio: "16 / 9" }}>
-                        <iframe
-                          key={activeId}
-                          ref={iframeRef}
-                          src={playerEmbedSrc}
-                          title="YouTube player"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                          className="absolute inset-0 h-full w-full"
-                        />
-                      </div>
-                    ) : (
-                      <div className="relative mx-auto w-full max-w-4xl" style={{ aspectRatio: "16 / 9", maxHeight: "calc(100vh - 220px)" }}>
->>>>>>> 8619a52ece4cb091f8ecff4666210f0277db165b
-                        <iframe
-                          key={activeId}
-                          ref={iframeRef}
-                          src={playerEmbedSrc}
-                          title="YouTube player"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                          className="absolute inset-0 h-full w-full"
-                        />
+
+                  {activeId.startsWith("shorts:") && playerSize !== "fullscreen" ? (
+                    <div className="flex w-full items-center justify-center bg-black py-4">
+                      <div className="relative flex items-center gap-3">
+                        <div
+                          className="relative overflow-hidden rounded-xl bg-black"
+                          style={{ aspectRatio: "9 / 16", height: "min(80vh, 720px)" }}
+                        >
+                          <iframe
+                            key={activeId}
+                            src={playerEmbedSrc}
+                            title="YouTube short"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            className="absolute inset-0 h-full w-full"
+                          />
+                        </div>
+                        <div className="flex flex-col gap-3">
+                          <button
+                            onClick={() => {
+                              const list = videos.filter((x) => x.category === "shorts");
+                              const idx = list.findIndex((x) => `${x.category}:${x.id}` === activeId);
+                              const prev = list[idx - 1];
+                              if (prev) setActiveId(`${prev.category}:${prev.id}`);
+                            }}
+                            className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-secondary-foreground shadow hover:bg-accent disabled:opacity-40"
+                            aria-label="Previous short"
+                          >
+                            <ChevronUp className="h-5 w-5" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              const list = videos.filter((x) => x.category === "shorts");
+                              const idx = list.findIndex((x) => `${x.category}:${x.id}` === activeId);
+                              const next = list[idx + 1];
+                              if (next) setActiveId(`${next.category}:${next.id}`);
+                            }}
+                            className="flex h-11 w-11 items-center justify-center rounded-full bg-secondary text-secondary-foreground shadow hover:bg-accent disabled:opacity-40"
+                            aria-label="Next short"
+                          >
+                            <ChevronDown className="h-5 w-5" />
+                          </button>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                )}
+                  ) : (
+                    <div className="w-full bg-black">
+                      {playerSize === "fullscreen" ? (
+                        <div className="relative w-full h-screen">
+                          <iframe
+                            key={activeId}
+                            ref={iframeRef}
+                            src={playerEmbedSrc}
+                            title="YouTube player"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            className="absolute inset-0 h-full w-full"
+                          />
+                        </div>
+                      ) : playerSize === "theatre" ? (
+                        <div className="relative w-full mx-auto" style={{ aspectRatio: "16 / 9" }}>
+                          <iframe
+                            key={activeId}
+                            ref={iframeRef}
+                            src={playerEmbedSrc}
+                            title="YouTube player"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            className="absolute inset-0 h-full w-full"
+                          />
+                        </div>
+                      ) : (
+                        <div className="relative mx-auto w-full max-w-4xl" style={{ aspectRatio: "16 / 9", maxHeight: "calc(100vh - 220px)" }}>
+                          <iframe
+                            key={activeId}
+                            ref={iframeRef}
+                            src={playerEmbedSrc}
+                            title="YouTube player"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                            className="absolute inset-0 h-full w-full"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </Card>
               </div>
             )}
