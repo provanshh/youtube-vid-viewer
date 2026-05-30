@@ -1188,9 +1188,6 @@ export function Dashboard() {
                         {trackerSelection?.items.length ?? 0}
                       </span>
                     </DialogTitle>
-                    <DialogDescription className="mt-1 text-sm text-slate-600 dark:text-slate-300/80">
-                      Videos in this collection
-                    </DialogDescription>
                 </div>
               </div>
 
@@ -1228,7 +1225,7 @@ export function Dashboard() {
                   </div>
                 ) : (
                   <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-sky-200/80 bg-white/70 px-6 py-10 text-center dark:border-white/10 dark:bg-white/5">
-                    <Youtube className="h-10 w-10 text-slate-400 dark:text-slate-300/75" />
+                    <ArrowBigUpDash className="h-10 w-10 text-slate-400 dark:text-slate-300/75" />
                     <p className="text-sm font-medium text-slate-900 dark:text-white">No videos in this collection yet</p>
                     <p className="text-xs text-slate-600 dark:text-slate-300/75">Add a few links and this tracker will populate automatically.</p>
                   </div>
@@ -1655,7 +1652,7 @@ function ThumbOrFallback({ v, aspect = "16 / 9" }: { v: Video; aspect?: string }
       className="flex h-full w-full items-center justify-center bg-gradient-to-br from-muted to-accent"
       style={{ aspectRatio: aspect }}
     >
-      <Youtube className="h-8 w-8 text-muted-foreground" />
+      <ArrowBigUpDash className="h-8 w-8 text-muted-foreground" />
     </div>
   );
 }
