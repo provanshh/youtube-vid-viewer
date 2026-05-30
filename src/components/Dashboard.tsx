@@ -57,7 +57,9 @@ import {
   Copy,
   Check,
   Maximize2,
+  Minimize2,
   Monitor,
+  RectangleHorizontal,
   X,
   Settings,
   Download,
@@ -77,7 +79,7 @@ import React from "react";
 
 type EyeFilter = "all" | "viewed" | "left";
 
-type PlayerSize = "full" | "fullscreen";
+type PlayerSize = "default" | "theatre" | "fullscreen";
 type Category = "videos" | "shorts" | "channel" | "posts";
 type ViewMode = "gallery" | "list" | "compact" | "tile";
 
@@ -165,7 +167,7 @@ export function Dashboard() {
   const [view, setView] = useState<ViewMode>("gallery");
   const [loading, setLoading] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [playerSize, setPlayerSize] = useState<PlayerSize>("full");
+  const [playerSize, setPlayerSize] = useState<PlayerSize>("default");
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [dark, setDark] = useState(false);
@@ -508,12 +510,26 @@ export function Dashboard() {
   }, [activeId]);
 
   const enterFullscreen = () => {
-    setPlayerSize("fullscreen");
-    requestAnimationFrame(() => {
-      const el = playerRef.current;
-      if (el && el.requestFullscreen) el.requestFullscreen().catch(() => { });
-    });
+    const el = playerRef.current;
+    if (el && el.requestFullscreen) {
+      el.requestFullscreen().then(() => {
+        setPlayerSize("fullscreen");
+      }).catch(() => { });
+    } else {
+      setPlayerSize("fullscreen");
+    }
   };
+
+  // Sync playerSize when user exits OS fullscreen (Esc or browser button)
+  useEffect(() => {
+    const onFsChange = () => {
+      if (!document.fullscreenElement && playerSize === "fullscreen") {
+        setPlayerSize("default");
+      }
+    };
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
+  }, [playerSize]);
 
   const downloadPdf = () => {
     const win = window.open("", "_blank");
@@ -904,12 +920,12 @@ export function Dashboard() {
           <main className={`mx-auto w-full ${activeId ? "max-w-none" : "max-w-7xl"} px-3 py-4 sm:px-4 ${isSplit ? "flex flex-col md:flex-row gap-4 items-start" : "space-y-4"}`}>
             {/* Player */}
             {activeId && playerEmbedSrc && (
-              <div className="w-full -mx-3 sm:-mx-4 -mt-4 sm:-mt-4">
+              <div className={`w-full ${playerSize === "theatre" ? "-mx-3 sm:-mx-4" : ""} -mt-4 sm:-mt-4`}>
                 <Card
-                  className="tubedeck-player overflow-hidden rounded-none p-0 tubedeck-player-border w-full"
+                  className={`tubedeck-player relative overflow-hidden p-0 w-full bg-gradient-to-b from-card to-card/95 border border-border ring-1 ring-primary/10 shadow-[0_10px_40px_-12px_rgba(0,0,0,0.18)] ${playerSize === "theatre" ? "rounded-none" : "rounded-2xl mx-auto"}`}
                   ref={playerRef as React.Ref<HTMLDivElement>}
                 >
-                <div className="tubedeck-player-bar flex items-center justify-between gap-2 bg-card/60 px-3 py-2">
+                <div className="tubedeck-player-bar flex items-center justify-between gap-2 bg-gradient-to-r from-card via-card to-card/80 px-3 py-2 border-b border-border/60">
                   <div className="flex min-w-0 items-center gap-2">
                     <p className="truncate text-xs font-medium text-muted-foreground">Now playing</p>
                     <NowPlayingBars />
@@ -940,8 +956,9 @@ export function Dashboard() {
                         ))}
                       </DropdownMenuContent>
                     </DropdownMenu>
-                    <div className="inline-flex items-center rounded-full border border-border bg-background p-0.5">
-                      <PlayerSizeBtn icon={<Monitor className="h-3.5 w-3.5" />} label="Full width" active={playerSize === "full"} onClick={() => setPlayerSize("full")} />
+                    <div className="inline-flex items-center rounded-full border border-border bg-background p-0.5 shadow-sm">
+                      <PlayerSizeBtn icon={<Monitor className="h-3.5 w-3.5" />} label="Default" active={playerSize === "default"} onClick={() => setPlayerSize("default")} />
+                      <PlayerSizeBtn icon={<RectangleHorizontal className="h-3.5 w-3.5" />} label="Theatre" active={playerSize === "theatre"} onClick={() => setPlayerSize("theatre")} />
                       <PlayerSizeBtn icon={<Maximize2 className="h-3.5 w-3.5" />} label="Full screen" active={playerSize === "fullscreen"} onClick={enterFullscreen} />
                     </div>
                     <CopyButton url={videos.find((v) => `${v.category}:${v.id}` === activeId)?.url ?? ""} />
@@ -1009,8 +1026,8 @@ export function Dashboard() {
                   </div>
                 ) : (
                   <div className="w-full bg-black">
-                    {playerSize === "full" ? (
-                      <div className="relative mx-auto w-full" style={{ maxHeight: "calc(100vh - 200px)", aspectRatio: "16 / 9" }}>
+                    {playerSize === "fullscreen" ? (
+                      <div className="relative w-full h-screen">
                         <iframe
                           key={activeId}
                           ref={iframeRef}
@@ -1019,11 +1036,22 @@ export function Dashboard() {
                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                           allowFullScreen
                           className="absolute inset-0 h-full w-full"
-                          style={{ maxHeight: "calc(100vh - 200px)" }}
+                        />
+                      </div>
+                    ) : playerSize === "theatre" ? (
+                      <div className="relative w-full mx-auto" style={{ aspectRatio: "16 / 9", maxHeight: "calc(100vh - 180px)" }}>
+                        <iframe
+                          key={activeId}
+                          ref={iframeRef}
+                          src={playerEmbedSrc}
+                          title="YouTube player"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="absolute inset-0 h-full w-full"
                         />
                       </div>
                     ) : (
-                      <div className="relative w-full" style={{ aspectRatio: "16 / 9" }}>
+                      <div className="relative mx-auto w-full max-w-5xl" style={{ aspectRatio: "16 / 9" }}>
                         <iframe
                           key={activeId}
                           ref={iframeRef}
