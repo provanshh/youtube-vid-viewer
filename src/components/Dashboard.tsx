@@ -1058,7 +1058,7 @@ export function Dashboard() {
                         />
                       </div>
                     ) : (
-                      <div className="relative mx-auto w-full max-w-5xl" style={{ aspectRatio: "16 / 9" }}>
+                      <div className="relative mx-auto w-full max-w-4xl" style={{ aspectRatio: "16 / 9", maxHeight: "calc(100vh - 220px)" }}>
                         <iframe
                           key={activeId}
                           ref={iframeRef}
