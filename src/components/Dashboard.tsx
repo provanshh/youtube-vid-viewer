@@ -77,7 +77,7 @@ import React from "react";
 
 type EyeFilter = "all" | "viewed" | "left";
 
-type PlayerSize = "full" | "fullscreen";
+type PlayerSize = "theatre" | "fullscreen";
 type Category = "videos" | "shorts" | "channel" | "posts";
 type ViewMode = "gallery" | "list" | "compact" | "tile";
 
@@ -165,7 +165,7 @@ export function Dashboard() {
   const [view, setView] = useState<ViewMode>("gallery");
   const [loading, setLoading] = useState(false);
   const [activeId, setActiveId] = useState<string | null>(null);
-  const [playerSize, setPlayerSize] = useState<PlayerSize>("full");
+  const [playerSize, setPlayerSize] = useState<PlayerSize>("theatre");
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
   const [bulkOpen, setBulkOpen] = useState(false);
   const [dark, setDark] = useState(false);
@@ -513,6 +513,13 @@ export function Dashboard() {
       const el = playerRef.current;
       if (el && el.requestFullscreen) el.requestFullscreen().catch(() => { });
     });
+  };
+
+  const setPlayerMode = () => {
+    setPlayerSize("theatre");
+    if (document.fullscreenElement) {
+      document.exitFullscreen().catch(() => { });
+    }
   };
 
   const downloadPdf = () => {
@@ -904,9 +911,9 @@ export function Dashboard() {
           <main className={`mx-auto w-full ${activeId ? "max-w-none" : "max-w-7xl"} px-3 py-4 sm:px-4 ${isSplit ? "flex flex-col md:flex-row gap-4 items-start" : "space-y-4"}`}>
             {/* Player */}
             {activeId && playerEmbedSrc && (
-              <div className="w-full -mx-3 sm:-mx-4 -mt-4 sm:-mt-4">
+              <div className={playerSize === "theatre" ? "w-full px-3 py-6 sm:px-6 sm:py-8" : "w-full -mx-3 sm:-mx-4 -mt-4 sm:-mt-4"}>
                 <Card
-                  className="tubedeck-player overflow-hidden rounded-none p-0 tubedeck-player-border w-full"
+                  className={`tubedeck-player overflow-hidden p-0 w-full ${playerSize === "theatre" ? "mx-auto max-w-6xl rounded-3xl border border-white/10 bg-transparent shadow-none" : "rounded-none"}`}
                   ref={playerRef as React.Ref<HTMLDivElement>}
                 >
                 <div className="tubedeck-player-bar flex items-center justify-between gap-2 bg-card/60 px-3 py-2">
@@ -941,7 +948,7 @@ export function Dashboard() {
                       </DropdownMenuContent>
                     </DropdownMenu>
                     <div className="inline-flex items-center rounded-full border border-border bg-background p-0.5">
-                      <PlayerSizeBtn icon={<Monitor className="h-3.5 w-3.5" />} label="Full width" active={playerSize === "full"} onClick={() => setPlayerSize("full")} />
+                      <PlayerSizeBtn icon={<Tv className="h-3.5 w-3.5" />} label="Theatre" active={playerSize === "theatre"} onClick={setPlayerMode} />
                       <PlayerSizeBtn icon={<Maximize2 className="h-3.5 w-3.5" />} label="Full screen" active={playerSize === "fullscreen"} onClick={enterFullscreen} />
                     </div>
                     <CopyButton url={videos.find((v) => `${v.category}:${v.id}` === activeId)?.url ?? ""} />
@@ -1008,22 +1015,9 @@ export function Dashboard() {
                     </div>
                   </div>
                 ) : (
-                  <div className="w-full bg-black">
-                    {playerSize === "full" ? (
-                      <div className="relative mx-auto w-full" style={{ maxHeight: "calc(100vh - 200px)", aspectRatio: "16 / 9" }}>
-                        <iframe
-                          key={activeId}
-                          ref={iframeRef}
-                          src={playerEmbedSrc}
-                          title="YouTube player"
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
-                          className="absolute inset-0 h-full w-full"
-                          style={{ maxHeight: "calc(100vh - 200px)" }}
-                        />
-                      </div>
-                    ) : (
-                      <div className="relative w-full" style={{ aspectRatio: "16 / 9" }}>
+                  <div className="w-full px-3 py-3 sm:px-4 sm:py-4">
+                    <div className="mx-auto w-full overflow-hidden rounded-3xl bg-transparent" style={{ border: playerSize === "theatre" ? "1px solid rgba(255,255,255,0.12)" : "1px solid rgba(255,255,255,0.15)" }}>
+                      <div className="relative w-full overflow-hidden rounded-3xl bg-transparent" style={{ aspectRatio: "16 / 9", maxHeight: "calc(100vh - 232px)" }}>
                         <iframe
                           key={activeId}
                           ref={iframeRef}
@@ -1034,7 +1028,7 @@ export function Dashboard() {
                           className="absolute inset-0 h-full w-full"
                         />
                       </div>
-                    )}
+                    </div>
                   </div>
                 )}
                 </Card>
