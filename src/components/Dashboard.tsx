@@ -75,6 +75,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { getYouTubeMeta } from "@/lib/api/youtube.functions";
+import { fetchImageProxy } from "@/lib/api/fetch-image.functions";
 import React from "react";
 
 type EyeFilter = "all" | "viewed" | "left";
@@ -93,6 +94,16 @@ type Video = {
   watched: boolean;
 };
 
+type BrowserTab = {
+  id: number;
+  title: string;
+  url: string;
+  favIconUrl?: string;
+  active?: boolean;
+  pinned?: boolean;
+  incognito?: boolean;
+};
+
 const STORAGE_KEY = "tubedeck.videos.v3";
 
 const CATEGORIES: { value: Category; label: string; icon: React.ReactNode }[] = [
@@ -104,8 +115,36 @@ const CATEGORIES: { value: Category; label: string; icon: React.ReactNode }[] = 
 
 type Parsed = { category: Category; id: string; url: string };
 
+function extractYouTubeCandidate(input: string): string {
+  const trimmed = input.trim();
+  if (!trimmed) return "";
+
+  if (/^[a-zA-Z0-9_-]{11}$/.test(trimmed)) {
+    return trimmed;
+  }
+
+  for (const rawToken of trimmed.split(/\s+/)) {
+    const token = rawToken.replace(/^["'`(<\[]+/, "").replace(/["'`)>.,;!?\]\}]+$/, "");
+    if (!token) continue;
+    if (/^[a-zA-Z0-9_-]{11}$/.test(token)) {
+      return token;
+    }
+
+    try {
+      const url = new URL(token.startsWith("http") ? token : `https://${token}`);
+      if ((/(^|\.)youtube\.com$/).test(url.hostname) || url.hostname === "youtu.be") {
+        return token;
+      }
+    } catch {
+      // keep scanning the remaining tokens
+    }
+  }
+
+  return "";
+}
+
 function parseYouTube(input: string): Parsed | null {
-  const s = input.trim();
+  const s = extractYouTubeCandidate(input);
   if (!s) return null;
   // bare 11-char video id
   if (/^[a-zA-Z0-9_-]{11}$/.test(s)) {
@@ -179,6 +218,10 @@ export function Dashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [trackerOpen, setTrackerOpen] = useState(false);
   const [trackerSelection, setTrackerSelection] = useState<null | { title: string; items: Video[] }>(null);
+  const [openedTabsOpen, setOpenedTabsOpen] = useState(false);
+  const [openedTabsLoading, setOpenedTabsLoading] = useState(false);
+  const [openedTabs, setOpenedTabs] = useState<BrowserTab[]>([]);
+  const [openedTabsError, setOpenedTabsError] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const pasteInputRef = useRef<HTMLInputElement | null>(null);
@@ -332,6 +375,41 @@ export function Dashboard() {
     }
   }, [videos]);
 
+  const requestTabActivation = async (tabId: number) => {
+    const requestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+    return new Promise<void>((resolve, reject) => {
+      const cleanup = () => {
+        window.clearTimeout(timerId);
+        window.removeEventListener("message", onMessage);
+      };
+
+      const onMessage = (event: MessageEvent) => {
+        if (event.source !== window) return;
+        const payload = event.data as { type?: string; requestId?: string; ok?: boolean; error?: string } | undefined;
+        if (!payload || payload.type !== "LINKEE_ACTIVATE_TAB_RESPONSE" || payload.requestId !== requestId) return;
+        cleanup();
+        if (payload.error) {
+          reject(new Error(payload.error));
+          return;
+        }
+        if (!payload.ok) {
+          reject(new Error("Unable to activate tab"));
+          return;
+        }
+        resolve();
+      };
+
+      const timerId = window.setTimeout(() => {
+        cleanup();
+        reject(new Error("Unable to activate tab"));
+      }, 1500);
+
+      window.addEventListener("message", onMessage);
+      window.postMessage({ type: "LINKEE_ACTIVATE_TAB_REQUEST", requestId, tabId }, "*");
+    });
+  };
+
   async function addFromInputs(inputs: string[]) {
     const parsed = inputs
       .map(parseYouTube)
@@ -467,6 +545,27 @@ export function Dashboard() {
     setTrackerOpen(true);
     setTrackerSelection({ title, items });
     setSidebarOpen(false);
+  };
+
+  const openOpenedTabs = async () => {
+    setSidebarOpen(false);
+    setOpenedTabsLoading(true);
+    setOpenedTabsError(null);
+    try {
+      const tabs = await requestOpenedTabs();
+      setOpenedTabs(tabs);
+      setOpenedTabsOpen(true);
+      if (tabs.length === 0) {
+        toast.info("No open tabs were returned");
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unable to load open tabs";
+      setOpenedTabsError(message);
+      setOpenedTabsOpen(true);
+      toast.error(message);
+    } finally {
+      setOpenedTabsLoading(false);
+    }
   };
 
   const closeTrackerSelection = () => setTrackerSelection(null);
@@ -1083,11 +1182,10 @@ export function Dashboard() {
               <TrackerPanel
                 stats={trackerStats}
                 videos={videos}
+                openedTabsCount={openedTabs.length}
+                openedTabsLoading={openedTabsLoading}
                 onOpenCollection={openTrackerSelection}
-                onClose={() => {
-                  setTrackerOpen(false);
-                  setTrackerSelection(null);
-                }}
+                onOpenTabs={openOpenedTabs}
               />
             ) : filtered.length === 0 ? (
               <Card className="flex flex-col items-center justify-center gap-2 rounded-2xl p-12 text-center shadow-sm">
@@ -1228,6 +1326,99 @@ export function Dashboard() {
                     <ArrowBigUpDash className="h-10 w-10 text-slate-400 dark:text-slate-300/75" />
                     <p className="text-sm font-medium text-slate-900 dark:text-white">No videos in this collection yet</p>
                     <p className="text-xs text-slate-600 dark:text-slate-300/75">Add a few links and this tracker will populate automatically.</p>
+                  </div>
+                )}
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={openedTabsOpen} onOpenChange={(open) => !open && setOpenedTabsOpen(false)}>
+            <DialogContent className="max-w-5xl overflow-hidden rounded-3xl border border-sky-200/70 bg-gradient-to-br from-white via-sky-50 to-indigo-50 p-0 shadow-2xl dark:border-indigo-300/20 dark:from-slate-950 dark:via-indigo-950/80 dark:to-indigo-950/90 sm:max-w-5xl">
+              <div className="border-b border-sky-100 px-5 py-4 dark:border-white/10 sm:px-6">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <DialogTitle className="flex items-center gap-2 text-2xl font-bold text-slate-900 dark:text-white">
+                      <RectangleHorizontal className="h-5 w-5" />
+                      <span>Opened tabs</span>
+                      <span className="rounded-full bg-sky-100 px-2.5 py-0.5 text-xs font-semibold text-sky-700 dark:bg-white/10 dark:text-slate-100">
+                        {openedTabs.length}
+                      </span>
+                    </DialogTitle>
+                    <DialogDescription className="mt-1 text-sm text-slate-600 dark:text-slate-300/75">
+                      Tabs are fetched from the lightweight Chrome extension bridge.
+                    </DialogDescription>
+                  </div>
+                </div>
+              </div>
+
+              <div className="max-h-[70vh] overflow-auto px-4 py-4 sm:px-6">
+                {openedTabsError ? (
+                  <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-sky-200/80 bg-white/70 px-6 py-10 text-center dark:border-white/10 dark:bg-white/5">
+                    <ArrowBigUpDash className="h-10 w-10 text-slate-400 dark:text-slate-300/75" />
+                    <p className="text-sm font-medium text-slate-900 dark:text-white">{openedTabsError}</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-300/75">
+                      Install the tabs bridge extension and reload this page, then click Opened tabs again.
+                    </p>
+                  </div>
+                ) : openedTabsLoading ? (
+                  <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-sky-200/80 bg-white/70 px-6 py-10 text-center dark:border-white/10 dark:bg-white/5">
+                    <p className="text-sm font-medium text-slate-900 dark:text-white">Loading open tabs…</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-300/75">Please wait while the extension fetches the active window tabs.</p>
+                  </div>
+                ) : openedTabs.length > 0 ? (
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                    {openedTabs.map((tab) => (
+                      <button
+                        key={`${tab.id}:${tab.url}`}
+                        type="button"
+                        onClick={async () => {
+                          if (tab.id >= 0) {
+                            try {
+                              await requestTabActivation(tab.id);
+                              setOpenedTabsOpen(false);
+                              return;
+                            } catch {
+                              // Fall back to opening the URL if the tab cannot be focused.
+                            }
+                          }
+
+                          if (tab.url) {
+                            window.location.href = tab.url;
+                          }
+                        }}
+                        className={`group flex items-center gap-3 rounded-2xl border bg-white/80 p-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:bg-white/5 ${tab.active ? "border-sky-300 ring-1 ring-sky-200 dark:border-sky-400/30 dark:ring-sky-400/20" : "border-sky-100 dark:border-white/10"}`}
+                      >
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-xl bg-slate-100 text-slate-500 dark:bg-white/10 dark:text-slate-300">
+                          {tab.favIconUrl ? (
+                            <img src={tab.favIconUrl} alt="" className="h-full w-full object-cover" />
+                          ) : (
+                            <RectangleHorizontal className="h-4 w-4" />
+                          )}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            {tab.pinned && (
+                              <span className="rounded-full bg-sky-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-sky-700 dark:bg-white/10 dark:text-slate-100">
+                                Pinned
+                              </span>
+                            )}
+                            {tab.active && (
+                              <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-emerald-700 dark:text-emerald-300">
+                                Active
+                              </span>
+                            )}
+                          </div>
+                          <p className="truncate text-sm font-semibold text-slate-900 dark:text-white">{tab.title || tab.url || "Untitled tab"}</p>
+                          <p className="truncate text-xs text-slate-600 dark:text-slate-300/75">{tab.url || "No URL available"}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-sky-200/80 bg-white/70 px-6 py-10 text-center dark:border-white/10 dark:bg-white/5">
+                    <RectangleHorizontal className="h-10 w-10 text-slate-400 dark:text-slate-300/75" />
+                    <p className="text-sm font-medium text-slate-900 dark:text-white">No open tabs returned</p>
+                    <p className="text-xs text-slate-600 dark:text-slate-300/75">The extension bridge is installed, but the browser did not return any tabs for this window.</p>
                   </div>
                 )}
               </div>
@@ -1452,6 +1643,94 @@ function CopyButton({
   );
 }
 
+async function copyImageToClipboard(url: string) {
+  if (!url) {
+    toast.error("No image available to copy");
+    return;
+  }
+  if (!(navigator.clipboard as any) || !(window as any).ClipboardItem) {
+    toast.error("Your browser doesn't support copying images to clipboard");
+    return;
+  }
+  try {
+    // Use server-side proxy to avoid CORS restrictions
+    const result = await fetchImageProxy({ data: { url } });
+    const dataUrl = `data:${result.mime};base64,${result.base64}`;
+    const fetched = await fetch(dataUrl);
+    const blob = await fetched.blob();
+
+    // Convert to PNG before writing — some browsers do not accept image/jpeg
+    let writeBlob: Blob = blob;
+    try {
+      const png = await convertBlobToPng(blob);
+      if (png) writeBlob = png;
+    } catch (e) {
+      // conversion failed, we'll try to write original blob
+      // eslint-disable-next-line no-console
+      console.warn("convert to png failed:", e);
+    }
+
+    const item = new (window as any).ClipboardItem({ [writeBlob.type]: writeBlob });
+    await (navigator.clipboard as any).write([item]);
+    toast.success("Image copied");
+  } catch (err) {
+    // eslint-disable-next-line no-console
+    console.error("copyImageToClipboard error:", err);
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.info("Could not copy image. Image URL copied instead.");
+    } catch {
+      toast.error("Unable to copy image or image URL. See console for details.");
+    }
+  }
+}
+
+async function convertBlobToPng(blob: Blob): Promise<Blob | null> {
+  return new Promise((resolve) => {
+    try {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      const revoke = () => {
+        try {
+          URL.revokeObjectURL(img.src);
+        } catch {}
+      };
+      img.onload = () => {
+        try {
+          const canvas = document.createElement("canvas");
+          const w = img.naturalWidth || img.width || 1;
+          const h = img.naturalHeight || img.height || 1;
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            revoke();
+            return resolve(null);
+          }
+          ctx.drawImage(img, 0, 0, w, h);
+          canvas.toBlob((b) => {
+            revoke();
+            resolve(b);
+          }, "image/png");
+        } catch (e) {
+          revoke();
+          resolve(null);
+        }
+      };
+      img.onerror = () => {
+        revoke();
+        resolve(null);
+      };
+      img.src = URL.createObjectURL(blob);
+    } catch (e) {
+      // If anything unexpected happens, return null
+      // eslint-disable-next-line no-console
+      console.error("convertBlobToPng error:", e);
+      resolve(null);
+    }
+  });
+}
+
 function ViewBtn({
   icon,
   label,
@@ -1482,8 +1761,10 @@ function ViewBtn({
 function TrackerPanel({
   stats,
   videos,
+  openedTabsCount,
+  openedTabsLoading,
   onOpenCollection,
-  onClose,
+  onOpenTabs,
 }: {
   stats: {
     total: number;
@@ -1493,8 +1774,10 @@ function TrackerPanel({
     byCategory: { key: Category; label: string; count: number }[];
   };
   videos: Video[];
+  openedTabsCount: number;
+  openedTabsLoading: boolean;
   onOpenCollection: (title: string, items: Video[]) => void;
-  onClose: () => void;
+  onOpenTabs: () => void;
 }) {
   return (
     <div className="space-y-4">
@@ -1594,10 +1877,62 @@ function TrackerPanel({
             </button>
           ))}
         </div>
+        <button
+          type="button"
+          onClick={onOpenTabs}
+          disabled={openedTabsLoading}
+          className="mt-3 flex w-full items-center justify-between rounded-2xl border border-sky-200 bg-white px-4 py-3 text-left shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md dark:border-white/10 dark:bg-white/5"
+        >
+          <span className="flex min-w-0 items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-sky-100 text-sky-700 dark:bg-white/10 dark:text-slate-100">
+              <RectangleHorizontal className="h-4 w-4" />
+            </span>
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold text-slate-900 dark:text-white">Opened tabs</span>
+              <span className="block text-xs text-slate-600 dark:text-slate-300/75">Fetch the current browser tabs into this tracker.</span>
+            </span>
+          </span>
+          <span className="inline-flex items-center rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700 dark:bg-white/10 dark:text-slate-100">
+            {openedTabsLoading ? "Loading…" : `${openedTabsCount} tabs`}
+          </span>
+        </button>
       </Card>
 
     </div>
   );
+}
+
+async function requestOpenedTabs(timeoutMs = 1500): Promise<BrowserTab[]> {
+  const requestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
+  return new Promise((resolve, reject) => {
+    let timerId: number;
+
+    const cleanup = () => {
+      window.clearTimeout(timerId);
+      window.removeEventListener("message", onMessage);
+    };
+
+    const onMessage = (event: MessageEvent) => {
+      if (event.source !== window) return;
+      const payload = event.data as { type?: string; requestId?: string; tabs?: BrowserTab[]; error?: string } | undefined;
+      if (!payload || payload.type !== "LINKEE_OPENED_TABS_RESPONSE" || payload.requestId !== requestId) return;
+      cleanup();
+      if (payload.error) {
+        reject(new Error(payload.error));
+        return;
+      }
+      resolve(Array.isArray(payload.tabs) ? payload.tabs : []);
+    };
+
+    timerId = window.setTimeout(() => {
+      cleanup();
+      reject(new Error("Install the Linkee tabs bridge extension and reload this page."));
+    }, timeoutMs);
+
+    window.addEventListener("message", onMessage);
+    window.postMessage({ type: "LINKEE_OPENED_TABS_REQUEST", requestId }, "*");
+  });
 }
 
 function watchedBorder(watched: boolean) {
@@ -1738,6 +2073,12 @@ function GalleryCard({
                 <a href={v.url} target="_blank" rel="noreferrer" className="flex items-center gap-2">
                   <ExternalLink className="h-3.5 w-3.5" /> Open in YouTube
                 </a>
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => copyImageToClipboard(v.thumbnail)}
+                className="cursor-pointer text-xs gap-2"
+              >
+                <Copy className="h-3.5 w-3.5" /> Copy image
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
