@@ -942,8 +942,9 @@ export function Dashboard() {
                         ))}
                       </DropdownMenuContent>
                     </DropdownMenu>
-                    <div className="inline-flex items-center rounded-full border border-border bg-background p-0.5">
-                      <PlayerSizeBtn icon={<Monitor className="h-3.5 w-3.5" />} label="Full width" active={playerSize === "full"} onClick={() => setPlayerSize("full")} />
+                    <div className="inline-flex items-center rounded-full border border-border bg-background p-0.5 shadow-sm">
+                      <PlayerSizeBtn icon={<Monitor className="h-3.5 w-3.5" />} label="Default" active={playerSize === "default"} onClick={() => setPlayerSize("default")} />
+                      <PlayerSizeBtn icon={<RectangleHorizontal className="h-3.5 w-3.5" />} label="Theatre" active={playerSize === "theatre"} onClick={() => setPlayerSize("theatre")} />
                       <PlayerSizeBtn icon={<Maximize2 className="h-3.5 w-3.5" />} label="Full screen" active={playerSize === "fullscreen"} onClick={enterFullscreen} />
                     </div>
                     <CopyButton url={videos.find((v) => `${v.category}:${v.id}` === activeId)?.url ?? ""} />
