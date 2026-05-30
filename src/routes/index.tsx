@@ -5,7 +5,6 @@ import {
   Check,
   ArrowRight,
   Zap,
-  Crown,
   Rocket,
   ChevronDown,
   Monitor,
@@ -51,6 +50,7 @@ export const Route = createFileRoute("/")({
 function Landing() {
   const [authOpen, setAuthOpen] = useState<null | "login" | "signup">(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
   const [carouselPosition, setCarouselPosition] = useState(FEATURES.length);
   const [carouselTransition, setCarouselTransition] = useState(true);
   const [carouselWidth, setCarouselWidth] = useState(0);
@@ -331,12 +331,28 @@ function Landing() {
           <p className="mx-auto mt-4 max-w-2xl text-base text-white/60 sm:mt-5 sm:text-lg">
             Start free. Upgrade when you want more power.
           </p>
+          <div className="mt-5 inline-flex items-center rounded-full border border-white/15 bg-white/5 p-1 text-xs font-medium text-white/70">
+            <button
+              type="button"
+              onClick={() => setBillingCycle("monthly")}
+              className={`rounded-full px-4 py-1.5 transition-all ${billingCycle === "monthly" ? "bg-white text-black shadow-sm" : "hover:text-white"}`}
+            >
+              Monthly
+            </button>
+            <button
+              type="button"
+              onClick={() => setBillingCycle("yearly")}
+              className={`rounded-full px-4 py-1.5 transition-all ${billingCycle === "yearly" ? "bg-white text-black shadow-sm" : "hover:text-white"}`}
+            >
+              Yearly
+            </button>
+          </div>
         </div>
-        <div className="mt-10 grid gap-4 md:mt-16 md:grid-cols-3 md:gap-6">
+        <div className="mx-auto mt-10 grid max-w-[720px] justify-items-center gap-1.5 md:mt-16 md:grid-cols-2 md:gap-3">
           {PLANS.map((p, i) => (
             <div
               key={p.name}
-              className={`relative rounded-2xl border p-5 transition-all hover:-translate-y-1 sm:p-7 ${
+              className={`relative w-full max-w-[340px] rounded-2xl border p-5 transition-all hover:-translate-y-1 sm:max-w-[360px] sm:p-7 ${
                 p.featured
                   ? "border-white/30 bg-gradient-to-b from-white/[0.08] to-white/[0.02]"
                   : "border-white/10 bg-white/[0.03]"
@@ -353,10 +369,22 @@ function Landing() {
                 {p.name}
               </div>
               <div className="mt-3 flex items-baseline gap-1 sm:mt-4">
-                <span className="text-4xl font-bold text-white sm:text-5xl">{p.price}</span>
-                {p.period && <span className="text-xs text-white/50 sm:text-sm">/{p.period}</span>}
+                {(() => {
+                  const pricing = p.variants[billingCycle] ?? p.variants.monthly;
+                  return (
+                    <>
+                      {pricing.oldPrice ? <span className="text-base font-medium text-white/45 line-through sm:text-lg">{pricing.oldPrice}</span> : null}
+                      <span className="text-4xl font-bold text-white sm:text-5xl">{pricing.price}</span>
+                      {pricing.period && <span className="text-xs text-white/50 sm:text-sm">/{pricing.period}</span>}
+                    </>
+                  );
+                })()}
               </div>
               <p className="mt-2 text-xs text-white/60 sm:text-sm">{p.tagline}</p>
+              {(() => {
+                const pricing = p.variants[billingCycle] ?? p.variants.monthly;
+                return pricing.note ? <p className="mt-1 text-[11px] font-medium text-amber-300 sm:text-xs">{pricing.note}</p> : null;
+              })()}
               <ul className="mt-4 space-y-2 sm:mt-6 sm:space-y-2.5">
                 {p.features.map((f) => (
                   <li key={f} className="flex items-start gap-2 text-xs text-white/80 sm:text-sm">
@@ -673,62 +701,90 @@ const FEATURES: { icon: LucideIcon; title: string; desc: string }[] = [
 ];
 
 
-const PLANS = [
+type Plan = {
+  name: string;
+  icon: React.ReactNode;
+  tagline: string;
+  cta: string;
+  featured: boolean;
+  features: string[];
+  variants: {
+    monthly: {
+      price: string;
+      oldPrice?: string;
+      period?: string;
+      note?: string;
+    };
+    yearly?: {
+      price: string;
+      oldPrice?: string;
+      period?: string;
+      note?: string;
+    };
+  };
+};
+
+const PLANS: Plan[] = [
   {
-    name: "Free",
+    name: "Basic (Free for first 100 users only)",
     icon: <Zap className="h-4 w-4" />,
-    price: "$0",
-    period: "forever",
     tagline: "Everything you need to get organized.",
     cta: "Start free",
     featured: false,
+    variants: {
+      monthly: {
+        price: "$0",
+        oldPrice: "$4.99",
+        period: "forever",
+        note: "Price increases soon.",
+      },
+      yearly: {
+        price: "$0",
+        oldPrice: "$4.99",
+        period: "forever",
+        note: "Price increases soon.",
+      },
+    },
     features: [
       "Unlimited videos, shorts, channels, posts",
-      "All three view modes",
+      "All four view modes",
       "Theatre & fullscreen player",
-      "Copy links & PDF export",
-      "Local-first — no account needed",
+      "Local storage in your browser",
     ],
   },
   {
     name: "Pro",
     icon: <Sparkles className="h-4 w-4" />,
-    price: "$4",
-    period: "mo",
     tagline: "For power viewers who want sync.",
     cta: "Go Pro",
     featured: true,
+    variants: {
+      monthly: {
+        price: "$4.99",
+        oldPrice: "$9.99",
+        period: "mo",
+      },
+      yearly: {
+        price: "$39.99",
+        oldPrice: "$60",
+        period: "year",
+      },
+    },
     features: [
       "Everything in Free",
       "Cloud sync across devices",
-      "Custom tags & collections",
-      "Watch queue with autoplay",
-      "Priority support",
-    ],
-  },
-  {
-    name: "Studio",
-    icon: <Crown className="h-4 w-4" />,
-    price: "$12",
-    period: "mo",
-    tagline: "For teams and creators.",
-    cta: "Contact sales",
-    featured: false,
-    features: [
-      "Everything in Pro",
-      "Shared team libraries",
+      "Copy and export your library",
       "Bulk import from CSV",
-      "Analytics & watch reports",
-      "API access",
+      "Access to tracker dashboard and watch stats",
     ],
   },
 ];
 
 const FAQS = [
   { q: "What is Linkee?", a: "Linkee is a beautiful dashboard for organizing YouTube videos, shorts, channels and community posts. Paste a link and it auto-categorizes — then watch, sort, filter and export." },
-  { q: "Do I need an account?", a: "No. Linkee is local-first — your library lives in your browser. No sign-up, no tracking, no waiting." },
+  { q: "Can I use Linkee locally in my browser?", a: "Yes. Linkee is local-first — your library stays in your browser. No tracking, no uploads, and no waiting." },
   { q: "What kind of YouTube links can I save?", a: "Videos, shorts (youtube.com/shorts/...), channels (youtube.com/@handle) and community posts (youtube.com/post/...) — all auto-detected and sorted." },
   { q: "Can I export my library?", a: "Yes. Export the whole database to PDF, or copy all links grouped by category from the settings menu." },
-  { q: "Is Linkee really free?", a: "The Free plan is free forever and includes everything you need. Pro adds cloud sync and queue features for power viewers." },
-  { q: "Who built Linkee?", a: "Linkee is built by Provansh — an indie maker. You can reach out on X (@provanshh) or LinkedIn." },
+  { q: "Is Linkee really free?", a: "The Basic plan is free forever (for first 100 users only) and includes everything you need. Pro adds cloud sync and queue features for power viewers." },
+  { q: "Who built Linkee?", a: "Linkee is built by Vansh Singla — an indie maker. You can reach out on X (@provanshh) or LinkedIn (@provanshh)." },
 ];

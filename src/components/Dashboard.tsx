@@ -44,6 +44,7 @@ import {
   Search,
   Trash2,
   ExternalLink,
+  ArrowBigUpDash,
   Youtube,
   ClipboardPaste,
   Moon,
@@ -922,15 +923,15 @@ export function Dashboard() {
               <div
                 className={
                   playerSize === "theatre"
-                    ? "fixed inset-0 z-50 flex items-center justify-center px-4 py-6 sm:py-10 bg-black/85 backdrop-blur-md"
+                    ? "fixed inset-0 z-50 flex items-center justify-center px-4 py-6 sm:py-10 bg-black/90 backdrop-blur-sm"
                     : "w-full pt-2"
                 }
                 onClick={playerSize === "theatre" ? (e) => { if (e.target === e.currentTarget) setPlayerSize("default"); } : undefined}
               >
                 <Card
                   ref={playerRef as React.Ref<HTMLDivElement>}
-                  className={`tubedeck-player relative overflow-hidden p-0 flex flex-col bg-gradient-to-b from-card to-card/95 border border-border ring-1 ring-primary/10 shadow-[0_10px_40px_-12px_rgba(0,0,0,0.18)] rounded-2xl ${playerSize === "theatre" ? "mx-auto max-w-full" : "w-full mx-auto"}`}
-                  style={playerSize === "theatre" ? { width: "min(100%, calc((100vh - 120px) * 16 / 9))" } : undefined}
+                  className={`tubedeck-player relative overflow-hidden p-0 flex flex-col bg-gradient-to-b from-card to-card/95 border border-border ring-1 ring-primary/10 shadow-[0_10px_40px_-12px_rgba(0,0,0,0.18)] rounded-2xl ${playerSize === "theatre" ? "w-full max-w-none" : "w-full mx-auto"}`}
+                  style={playerSize === "theatre" ? { width: "100%", maxHeight: "calc(100vh - 120px)" } : undefined}
                 >
                   <div className="tubedeck-player-bar flex items-center justify-between gap-2 bg-gradient-to-r from-card via-card to-card/80 px-3 py-2 border-b border-border/60">
                     <div className="flex min-w-0 items-center gap-2">
@@ -1046,7 +1047,7 @@ export function Dashboard() {
                           />
                         </div>
                       ) : playerSize === "theatre" ? (
-                        <div className="relative w-full mx-auto" style={{ aspectRatio: "16 / 9" }}>
+                        <div className="relative w-full mx-auto overflow-hidden" style={{ aspectRatio: "16 / 9", maxHeight: "calc(100vh - 120px)" }}>
                           <iframe
                             key={activeId}
                             ref={iframeRef}
@@ -1090,7 +1091,7 @@ export function Dashboard() {
               />
             ) : filtered.length === 0 ? (
               <Card className="flex flex-col items-center justify-center gap-2 rounded-2xl p-12 text-center shadow-sm">
-                <Youtube className="h-10 w-10 text-muted-foreground" />
+                <ArrowBigUpDash className="h-10 w-10 text-muted-foreground" />
                 <p className="text-sm font-medium">Nothing here yet</p>
                 <p className="text-xs text-muted-foreground">
                   Paste a YouTube link above — videos, shorts, channels & posts are sorted automatically.
