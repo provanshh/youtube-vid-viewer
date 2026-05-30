@@ -510,12 +510,26 @@ export function Dashboard() {
   }, [activeId]);
 
   const enterFullscreen = () => {
-    setPlayerSize("fullscreen");
-    requestAnimationFrame(() => {
-      const el = playerRef.current;
-      if (el && el.requestFullscreen) el.requestFullscreen().catch(() => { });
-    });
+    const el = playerRef.current;
+    if (el && el.requestFullscreen) {
+      el.requestFullscreen().then(() => {
+        setPlayerSize("fullscreen");
+      }).catch(() => { });
+    } else {
+      setPlayerSize("fullscreen");
+    }
   };
+
+  // Sync playerSize when user exits OS fullscreen (Esc or browser button)
+  useEffect(() => {
+    const onFsChange = () => {
+      if (!document.fullscreenElement && playerSize === "fullscreen") {
+        setPlayerSize("default");
+      }
+    };
+    document.addEventListener("fullscreenchange", onFsChange);
+    return () => document.removeEventListener("fullscreenchange", onFsChange);
+  }, [playerSize]);
 
   const downloadPdf = () => {
     const win = window.open("", "_blank");
