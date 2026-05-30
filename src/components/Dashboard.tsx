@@ -906,12 +906,12 @@ export function Dashboard() {
           <main className={`mx-auto w-full ${activeId ? "max-w-none" : "max-w-7xl"} px-3 py-4 sm:px-4 ${isSplit ? "flex flex-col md:flex-row gap-4 items-start" : "space-y-4"}`}>
             {/* Player */}
             {activeId && playerEmbedSrc && (
-              <div className="w-full -mx-3 sm:-mx-4 -mt-4 sm:-mt-4">
+              <div className={`w-full ${playerSize === "theatre" ? "-mx-3 sm:-mx-4" : ""} -mt-4 sm:-mt-4`}>
                 <Card
-                  className="tubedeck-player overflow-hidden rounded-none p-0 tubedeck-player-border w-full"
+                  className={`tubedeck-player relative overflow-hidden p-0 w-full bg-gradient-to-b from-card to-card/95 border border-border ring-1 ring-primary/10 shadow-[0_10px_40px_-12px_rgba(0,0,0,0.18)] ${playerSize === "theatre" ? "rounded-none" : "rounded-2xl mx-auto"}`}
                   ref={playerRef as React.Ref<HTMLDivElement>}
                 >
-                <div className="tubedeck-player-bar flex items-center justify-between gap-2 bg-card/60 px-3 py-2">
+                <div className="tubedeck-player-bar flex items-center justify-between gap-2 bg-gradient-to-r from-card via-card to-card/80 px-3 py-2 border-b border-border/60">
                   <div className="flex min-w-0 items-center gap-2">
                     <p className="truncate text-xs font-medium text-muted-foreground">Now playing</p>
                     <NowPlayingBars />
