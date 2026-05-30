@@ -1047,7 +1047,7 @@ export function Dashboard() {
                         />
                       </div>
                     ) : playerSize === "theatre" ? (
-                      <div className="relative w-full mx-auto" style={{ aspectRatio: "16 / 9", maxHeight: "calc(100vh - 180px)" }}>
+                      <div className="relative w-full mx-auto" style={{ aspectRatio: "16 / 9" }}>
                         <iframe
                           key={activeId}
                           ref={iframeRef}
