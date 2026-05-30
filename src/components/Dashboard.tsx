@@ -1012,8 +1012,8 @@ export function Dashboard() {
                   </div>
                 ) : (
                   <div className="w-full bg-black">
-                    {playerSize === "full" ? (
-                      <div className="relative mx-auto w-full" style={{ maxHeight: "calc(100vh - 200px)", aspectRatio: "16 / 9" }}>
+                    {playerSize === "fullscreen" ? (
+                      <div className="relative w-full h-screen">
                         <iframe
                           key={activeId}
                           ref={iframeRef}
@@ -1022,11 +1022,22 @@ export function Dashboard() {
                           allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                           allowFullScreen
                           className="absolute inset-0 h-full w-full"
-                          style={{ maxHeight: "calc(100vh - 200px)" }}
+                        />
+                      </div>
+                    ) : playerSize === "theatre" ? (
+                      <div className="relative w-full mx-auto" style={{ aspectRatio: "16 / 9", maxHeight: "calc(100vh - 180px)" }}>
+                        <iframe
+                          key={activeId}
+                          ref={iframeRef}
+                          src={playerEmbedSrc}
+                          title="YouTube player"
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                          className="absolute inset-0 h-full w-full"
                         />
                       </div>
                     ) : (
-                      <div className="relative w-full" style={{ aspectRatio: "16 / 9" }}>
+                      <div className="relative mx-auto w-full max-w-5xl" style={{ aspectRatio: "16 / 9" }}>
                         <iframe
                           key={activeId}
                           ref={iframeRef}
