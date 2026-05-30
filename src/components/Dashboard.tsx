@@ -929,7 +929,8 @@ export function Dashboard() {
                 onClick={playerSize === "theatre" ? (e) => { if (e.target === e.currentTarget) setPlayerSize("default"); } : undefined}
               >
                 <Card
-                  className={`tubedeck-player relative overflow-hidden p-0 flex flex-col bg-gradient-to-b from-card to-card/95 border border-border ring-1 ring-primary/10 shadow-[0_10px_40px_-12px_rgba(0,0,0,0.18)] rounded-2xl ${playerSize === "theatre" ? "w-full max-w-none mx-auto" : "w-full mx-auto"}`}
+                  className={`tubedeck-player relative overflow-hidden p-0 flex flex-col bg-gradient-to-b from-card to-card/95 border border-border ring-1 ring-primary/10 shadow-[0_10px_40px_-12px_rgba(0,0,0,0.18)] rounded-2xl ${playerSize === "theatre" ? "mx-auto max-w-full" : "w-full mx-auto"}`}
+                  style={playerSize === "theatre" ? { width: "min(100%, calc((100vh - 120px) * 16 / 9))" } : undefined}
                   ref={playerRef as React.Ref<HTMLDivElement>}
                 >
                 <div className="tubedeck-player-bar flex items-center justify-between gap-2 bg-gradient-to-r from-card via-card to-card/80 px-3 py-2 border-b border-border/60">
