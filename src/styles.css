@@ -196,22 +196,34 @@
 .tubedeck-bar-3 { animation-delay: 0.3s; }
 .tubedeck-bar-4 { animation-delay: 0.45s; }
 
-/* Hide player chrome when fullscreen */
-.tubedeck-player:fullscreen { background: #000; border-radius: 0; }
+/* Hide player chrome when in OS fullscreen */
+.tubedeck-player:fullscreen {
+  background: #000;
+  border-radius: 0 !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  width: 100vw;
+  height: 100vh;
+  max-width: none !important;
+  margin: 0 !important;
+}
 .tubedeck-player:fullscreen .tubedeck-player-bar { display: none; }
-.tubedeck-player:fullscreen > div:last-child { height: 100vh; max-width: none; }
-.tubedeck-player:fullscreen iframe { max-height: 100vh !important; height: 100vh !important; }
-
-/* Player card — simple black/dark-adjusted border */
-.tubedeck-player-border {
-  border: 0;
-  box-shadow: none;
+.tubedeck-player:fullscreen > div:last-child,
+.tubedeck-player:fullscreen > div:last-child > div {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  max-width: none !important;
+  aspect-ratio: auto !important;
+}
+.tubedeck-player:fullscreen iframe {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  width: 100vw !important;
 }
 
-.dark .tubedeck-player-border {
-  border: 0;
-  box-shadow: none;
-}
+/* Player card highlight glow */
+.tubedeck-player-border { border: 0; box-shadow: none; }
+.dark .tubedeck-player-border { border: 0; box-shadow: none; }
 
 
 /* Landing page animations */
