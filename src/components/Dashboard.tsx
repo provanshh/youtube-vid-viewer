@@ -77,7 +77,7 @@ import React from "react";
 
 type EyeFilter = "all" | "viewed" | "left";
 
-type PlayerSize = "full" | "fullscreen";
+type PlayerSize = "default" | "theatre" | "fullscreen";
 type Category = "videos" | "shorts" | "channel" | "posts";
 type ViewMode = "gallery" | "list" | "compact" | "tile";
 
